@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dodge_master pit wall</title>
+<link rel="stylesheet" href="style.css">
+<script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-solid" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-weak" viewBox="0 0 16 16"><path d="M3.5 8.5l3 2.8L12.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.2 1.6"/></symbol>
+    <symbol id="i-side" viewBox="0 0 16 16"><path d="M8 2.5l6 10.5H2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 6.5v3.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="11.4" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-floor" viewBox="0 0 16 16"><path d="M2 12.5h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="7.5" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-hit" viewBox="0 0 16 16"><path d="M8 1.8l1.6 4 4.2-.8-2.8 3.2 2.6 3.4-4.2-.4L8 15l-1.4-3.8-4.2.4L5 8.2 2.2 5l4.2.8z" fill="currentColor"/></symbol>
+    <symbol id="i-play" viewBox="0 0 16 16"><path d="M4.5 2.8v10.4L13 8z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 16 16"><rect x="3.5" y="2.8" width="3.2" height="10.4" rx="0.6" fill="currentColor"/><rect x="9.3" y="2.8" width="3.2" height="10.4" rx="0.6" fill="currentColor"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 16 16"><path d="M13.2 10.2A5.6 5.6 0 0 1 5.8 2.8a5.6 5.6 0 1 0 7.4 7.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#overview" aria-label="dodge_master, overview">
+      <svg class="mark" viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
+        <path d="M6 2h28l4 4v28l-4 4H6l-4-4V6z" fill="var(--accent)"/>
+        <path d="M6 2h28l4 4v28l-4 4H6l-4-4V6z" fill="none" stroke="var(--mark-edge)" stroke-width="1"/>
+        <circle cx="16" cy="23" r="9" fill="none" stroke="var(--mark-ink)" stroke-width="3.4" stroke-dasharray="3.1 1.6"/>
+        <circle cx="16" cy="23" r="5.4" fill="var(--accent)" stroke="var(--mark-ink)" stroke-width="1.6"/>
+        <circle cx="16" cy="23" r="1.6" fill="var(--mark-ink)"/>
+        <path d="M18.5 20.5L30 9" stroke="var(--mark-ink)" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M25.6 4.6l9.8 9.8-3.4 3.4-9.8-9.8z" fill="var(--mark-ink)"/>
+      </svg>
+      <span class="wordmark"><span class="wm-a">dodge</span><span class="wm-b">master</span></span>
+      <span class="brand-sub">Hammer-saw policy<br>saw-v8 rules</span>
+    </a>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" data-tab="overview" aria-selected="true"><span>Overview</span></button>
+      <button role="tab" data-tab="training"><span>Training</span></button>
+      <button role="tab" data-tab="yardstick"><span>Yardstick</span></button>
+      <button role="tab" data-tab="replays"><span>Replays</span></button>
+    </nav>
+    <div class="top-right">
+      <span id="refreshed" class="sync"><i class="sync-dot"></i><span>Connecting</span></span>
+      <button id="theme" class="icon-btn" title="Switch between light and dark" aria-label="Switch between light and dark">
+        <svg class="when-dark" width="16" height="16"><use href="#i-sun"/></svg>
+        <svg class="when-light" width="16" height="16"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ───────── overview ───────── -->
+  <section id="overview" class="tab-panel">
+    <div class="hero panel">
+      <div class="hero-plate" aria-hidden="true"></div>
+      <div class="hero-main">
+        <div class="eyebrow">Headline score · Traves-like spinners</div>
+        <div class="hero-figure"><span id="hero-num" class="hero-num">–</span><span class="hero-unit">%</span></div>
+        <div class="hero-label">of three-minute fights land at least one solid hammer strike on a legal side</div>
+        <div id="hero-delta" class="hero-delta"><span class="skel w60"></span></div>
+        <p id="hero-note" class="hero-note"></p>
+      </div>
+      <div class="hero-board">
+        <div class="board-head"><span>Panel</span><span class="board-keys"><span><i class="kb start"></i>Starting policy</span><span><i class="kb now" id="board-now-key"></i>Best checkpoint</span></span></div>
+        <div id="board" class="board">
+          <div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tiles" class="tiles">
+      <div class="tile panel"><span class="skel w40"></span><span class="skel big"></span></div>
+      <div class="tile panel"><span class="skel w40"></span><span class="skel big"></span></div>
+      <div class="tile panel"><span class="skel w40"></span><span class="skel big"></span></div>
+    </div>
+
+    <div class="sec-head"><h2>Training runs</h2><span class="note">Figures are the average of the last 10 updates</span></div>
+    <div id="run-cards" class="run-cards">
+      <div class="run panel skel-card"></div><div class="run panel skel-card"></div><div class="run panel skel-card"></div><div class="run panel skel-card"></div>
+    </div>
+  </section>
+
+  <!-- ───────── training ───────── -->
+  <section id="training" class="tab-panel" hidden>
+    <div class="page-head">
+      <div><div class="eyebrow">Telemetry</div><h1>Training</h1><p class="lede">One line per run, read from the training logs. The page refreshes every 30 seconds.</p></div>
+    </div>
+    <div class="filters">
+      <div id="train-legend" class="legend" data-for="train-charts"></div>
+      <div class="seg" id="smooth" role="group" aria-label="Smoothing"><button data-v="10" aria-pressed="true">10-update average</button><button data-v="1" aria-pressed="false">Raw</button></div>
+    </div>
+    <div id="train-charts" class="chart-grid"></div>
+  </section>
+
+  <!-- ───────── yardstick ───────── -->
+  <section id="yardstick" class="tab-panel" hidden>
+    <div class="page-head">
+      <div><div class="eyebrow">Scored checkpoints</div><h1>Yardstick</h1>
+      <p class="lede">Share of full three-minute fights with at least one solid hammer strike on a legal side: 10 swings, camera position only. Filled markers are 512-fight scores, hollow ones 128-fight quick scores (about ±8 points).</p></div>
+    </div>
+    <div class="filters"><div id="yard-legend" class="legend" data-for="yard-charts"></div></div>
+    <div id="yard-charts" class="chart-grid three"></div>
+    <div class="sec-head"><h2>Every scored checkpoint</h2><span class="note">Newest first within each run</span></div>
+    <div class="panel table-panel"><div class="table-wrap"><table id="yard-table"></table></div></div>
+  </section>
+
+  <!-- ───────── replays ───────── -->
+  <section id="replays" class="tab-panel" hidden>
+    <div class="replay-layout">
+      <aside class="panel fights">
+        <div class="panel-head"><h2>Fights</h2><span id="fight-count" class="note"></span><button id="fight-live" class="live-btn" title="You drive the opponent, a Traves-like bar spinner, against the newest policy">Fight the policy</button></div>
+        <div id="fight-list" class="fight-list"><div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div></div>
+      </aside>
+
+      <div class="stage">
+        <div class="arena-box" id="arena-box">
+          <canvas id="arena"></canvas>
+          <div class="arena-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div id="live-hint" class="live-hint" hidden><b>You are the orange robot.</b> W/S or ↑/↓ drive, A/D or ←/→ turn. Esc ends the fight.</div>
+          <div class="bug" id="bug">
+            <div class="bug-side us">
+              <div class="bug-row"><i class="corner"></i><span class="bug-name">Our robot</span><small>dealt</small><b id="bug-us-dmg">0.0</b></div>
+              <div class="bug-bar"><div id="bug-us-bar"></div></div>
+              <div class="bug-foot"><span id="bug-pips" class="pips" aria-label="Swings used"></span><span id="bug-swings" class="bug-cap"></span></div>
+            </div>
+            <div class="bug-clock">
+              <div id="bug-clock" class="bug-time">0:00.0</div>
+              <div id="bug-total" class="bug-of">of 3:00</div>
+            </div>
+            <div class="bug-side en">
+              <div class="bug-row"><b id="bug-en-dmg">0.0</b><small>dealt</small><span id="bug-en-name" class="bug-name">Opponent</span><i class="corner"></i></div>
+              <div class="bug-bar"><div id="bug-en-bar"></div></div>
+              <div class="bug-foot"><span class="bug-cap"><b id="bug-hits">0</b> hits on us</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="deck">
+          <div class="controls">
+            <button id="play" class="play" aria-label="Play"><svg width="18" height="18"><use href="#i-play"/></svg></button>
+            <div id="clock" class="clock">0:00.0 / 3:00</div>
+            <div class="seg" id="speed" role="group" aria-label="Playback speed"><button data-v="0.5" aria-pressed="false">0.5×</button><button data-v="1" aria-pressed="true">1×</button><button data-v="2" aria-pressed="false">2×</button><button data-v="4" aria-pressed="false">4×</button><button data-v="8" aria-pressed="false">8×</button></div>
+            <div class="seg" id="view" role="group" aria-label="Camera"><button data-v="1" aria-pressed="true" title="Keep both robots in view">Follow</button><button data-v="0" aria-pressed="false">Whole arena</button></div>
+          </div>
+          <div class="timeline">
+            <div class="tl-track" id="tl-track">
+              <div class="tl-fill" id="tl-fill"></div>
+              <div id="ticks" class="ticks"></div>
+              <div id="hit-ticks" class="hit-ticks"></div>
+              <div class="tl-head" id="tl-head"></div>
+              <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Fight time">
+            </div>
+            <div class="tl-scale" id="tl-scale"></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="panel">
+          <div class="stage-head">
+            <div class="eyebrow">This fight</div>
+            <div id="fight-title" class="fight-title">Loading fight</div>
+            <div id="fight-sub" class="fight-sub"></div>
+          </div>
+          <div id="live" class="live"></div>
+        </div>
+        <div class="panel feed-panel"><div class="panel-head"><h2>Swings</h2><span class="note">Select one to jump to it</span></div><div id="swing-log" class="log"></div>
+          <div class="legend keys">
+            <span><i class="key us"></i>Our robot</span><span><i class="key en"></i>Opponent</span>
+            <span class="o-solid"><svg width="14" height="14"><use href="#i-solid"/></svg>Solid legal strike</span>
+            <span class="o-weak"><svg width="14" height="14"><use href="#i-weak"/></svg>Legal, weak</span>
+            <span class="o-side"><svg width="14" height="14"><use href="#i-side"/></svg>Weapon side</span>
+            <span class="o-floor"><svg width="14" height="14"><use href="#i-floor"/></svg>Floor</span>
+            <span class="o-hit"><i class="hit-key"></i>Hit taken</span>
+          </div>
+        </div>
+        <p class="kbd-note"><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> one second</p>
+      </aside>
+    </div>
+  </section>
+</main>
+<div id="tip" class="tip" hidden></div>
+<script src="arena.js" onerror="this.remove()"></script>
+<script src="app.js"></script>
+</body>
+</html>

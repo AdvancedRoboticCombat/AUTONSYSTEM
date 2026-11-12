@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+logs/
+web/plays/
+eval/poc180/
+ppo_models/**/SAW_latest.pt
