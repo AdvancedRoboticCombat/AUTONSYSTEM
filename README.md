@@ -1,4 +1,4 @@
-# Nemesis hammer-saw sim (clean copy, 2026-11-12)
+# nemesis_auton: Nemesis hammer-saw sim (2026-11-12)
 
 A copy of the current working code only: the saw-v9 sim, the trainer, the
 yardstick, the web viewer and two checkpoints. Old generations, logs, audits
