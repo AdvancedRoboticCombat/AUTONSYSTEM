@@ -1,0 +1,349 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+@layer base {
+  :root {
+    /* Tactical dark theme */
+    --background: 350 40% 3%;
+    --foreground: 350 20% 94%;
+
+    --card: 350 45% 5%;
+    --card-foreground: 0 0% 90%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 90%;
+
+    /* Red accent - primary */
+    --primary: 350 100% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Darker red for secondary elements */
+    --secondary: 0 100% 25%;
+    --secondary-foreground: 0 100% 70%;
+
+    --muted: 350 30% 10%;
+    --muted-foreground: 350 12% 58%;
+
+    --accent: 0 100% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Status colors */
+    --status-ok: 150 90% 45%;
+    --status-warning: 42 100% 52%;
+    --status-critical: 0 100% 50%;
+    --status-degraded: 30 100% 50%;
+
+    --border: 350 100% 24%;
+    --input: 0 0% 15%;
+    --ring: 0 100% 50%;
+
+    --radius: 0.25rem;
+
+    /* Panel styling */
+    --panel-border: 0 100% 30%;
+    --panel-glow: 0 100% 50%;
+
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 0 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 100% 20%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 100% 20%;
+    --sidebar-ring: 0 100% 50%;
+  }
+
+  .dark {
+    --background: 350 40% 3%;
+    --foreground: 350 20% 94%;
+    --card: 350 45% 5%;
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 350 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 100% 25%;
+    --secondary-foreground: 0 100% 70%;
+    --muted: 350 30% 10%;
+    --muted-foreground: 350 12% 58%;
+    --accent: 0 100% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 350 100% 24%;
+    --input: 0 0% 15%;
+    --ring: 0 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply text-foreground;
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
+    background-color: hsl(var(--background));
+    /* red glow from the top, then a faint engineering grid */
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% -12%, hsl(350 100% 50% / 0.16), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 100% 110%, hsl(350 100% 40% / 0.10), transparent 70%),
+      linear-gradient(hsl(350 100% 50% / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(350 100% 50% / 0.045) 1px, transparent 1px);
+    background-size: auto, auto, 36px 36px, 36px 36px;
+  }
+
+  button {
+    background: transparent;
+    font: inherit;
+    color: inherit;
+  }
+
+  /* thin red scrollbars instead of the browser's grey ones */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(350 100% 45% / 0.55) transparent;
+  }
+  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-thumb { background: hsl(350 100% 45% / 0.55); }
+  *::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  /* ── Panel: cut corners, red hairline, soft glow ───────────────────── */
+  .panel-wrap {
+    filter: drop-shadow(0 0 7px hsl(350 100% 50% / 0.22));
+  }
+
+  .panel {
+    --cut: 14px;
+    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+    background: linear-gradient(135deg, hsl(350 100% 55% / 0.85), hsl(350 100% 35% / 0.35) 35%, hsl(350 100% 35% / 0.25) 65%, hsl(350 100% 55% / 0.75));
+    padding: 1px;
+  }
+
+  .panel-body {
+    --cut: 14px;
+    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+    background:
+      linear-gradient(180deg, hsl(350 60% 9% / 0.96), hsl(350 50% 4% / 0.97));
+    position: relative;
+  }
+
+  .panel-header {
+    @apply text-primary font-bold uppercase;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.22em;
+    text-shadow: 0 0 12px hsl(var(--primary) / 0.65);
+  }
+
+  .panel-tag {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 10px;
+    line-height: 1;
+    padding: 3px 5px 2px;
+    color: hsl(350 60% 4%);
+    background: hsl(var(--primary));
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.6);
+  }
+
+  .panel-rule {
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.7), transparent);
+  }
+
+  .scanline {
+    @apply pointer-events-none absolute inset-0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.16) 2px, rgba(0, 0, 0, 0.16) 3px);
+    mix-blend-mode: multiply;
+  }
+
+  /* ── Text roles ─────────────────────────────────────────────────────── */
+  .label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12px;
+    color: hsl(350 85% 66%);
+  }
+
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: hsl(var(--foreground));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: hsl(var(--primary));
+    box-shadow: 0 0 8px hsl(var(--primary));
+    transform: rotate(45deg);
+  }
+
+  .kv {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .kv-lead {
+    flex: 1;
+    border-bottom: 1px dotted hsl(350 100% 50% / 0.28);
+    transform: translateY(-3px);
+  }
+  .kv-value {
+    color: hsl(var(--foreground));
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat {
+    border-left: 2px solid hsl(var(--primary));
+    padding: 2px 0 2px 8px;
+    background: linear-gradient(90deg, hsl(350 100% 50% / 0.10), transparent 70%);
+    min-width: 0;
+  }
+  .stat-value {
+    font-size: 22px;
+    line-height: 1.1;
+    color: hsl(var(--foreground));
+    text-shadow: 0 0 10px hsl(350 100% 60% / 0.55);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .stat-unit {
+    font-size: 11px;
+    color: hsl(350 85% 66%);
+    margin-left: 3px;
+  }
+
+  .meter {
+    height: 5px;
+    background: hsl(350 100% 50% / 0.14);
+    position: relative;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    background: linear-gradient(90deg, hsl(350 100% 40%), hsl(350 100% 60%));
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.7);
+    transition: width 0.3s;
+  }
+
+  /* ── Buttons: slanted, glowing ──────────────────────────────────────── */
+  .cy-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: hsl(var(--primary));
+    padding: 9px 22px;
+    border: 1px solid hsl(var(--primary));
+    background: hsl(350 100% 50% / 0.07);
+    transform: skewX(-14deg);
+    box-shadow: 0 0 14px hsl(var(--primary) / 0.28), inset 0 0 12px hsl(var(--primary) / 0.10);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .cy-btn > span {
+    display: inline-block;
+    transform: skewX(14deg);
+  }
+  .cy-btn:hover {
+    background: hsl(var(--primary));
+    color: hsl(350 60% 4%);
+    box-shadow: 0 0 26px hsl(var(--primary) / 0.7);
+  }
+  .cy-btn:active { transform: skewX(-14deg) scale(0.97); }
+  .cy-btn:focus-visible { outline: 2px solid hsl(var(--foreground)); outline-offset: 3px; }
+
+  .cy-btn-lg { font-size: 14px; padding: 12px 30px; }
+
+  /* the driver has the robot: hazard tape */
+  .cy-btn-hazard {
+    color: hsl(42 100% 8%);
+    border-color: hsl(var(--status-warning));
+    background: repeating-linear-gradient(45deg, hsl(42 100% 52%), hsl(42 100% 52%) 12px, hsl(42 100% 40%) 12px, hsl(42 100% 40%) 24px);
+    box-shadow: 0 0 24px hsl(42 100% 50% / 0.55);
+  }
+  .cy-btn-hazard:hover {
+    color: hsl(42 100% 8%);
+    background: repeating-linear-gradient(45deg, hsl(42 100% 60%), hsl(42 100% 60%) 12px, hsl(42 100% 46%) 12px, hsl(42 100% 46%) 24px);
+    box-shadow: 0 0 30px hsl(42 100% 50% / 0.8);
+  }
+
+  /* ── Top bar ────────────────────────────────────────────────────────── */
+  .brand {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: 0.32em;
+    color: hsl(var(--primary));
+    text-shadow: 0 0 18px hsl(var(--primary) / 0.8), 2px 0 0 hsl(190 100% 50% / 0.35), -2px 0 0 hsl(350 100% 70% / 0.35);
+  }
+
+  .mode-pill {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.26em;
+    padding: 6px 18px;
+    transform: skewX(-14deg);
+    border: 1px solid hsl(var(--primary));
+    color: hsl(var(--primary));
+    background: hsl(350 100% 50% / 0.10);
+    box-shadow: 0 0 16px hsl(var(--primary) / 0.35);
+  }
+  .mode-pill > span { display: inline-block; transform: skewX(14deg); }
+  .mode-pill-manual {
+    color: hsl(42 100% 8%);
+    border-color: hsl(var(--status-warning));
+    background: repeating-linear-gradient(45deg, hsl(42 100% 52%), hsl(42 100% 52%) 10px, hsl(42 100% 40%) 10px, hsl(42 100% 40%) 20px);
+    box-shadow: 0 0 20px hsl(42 100% 50% / 0.5);
+  }
+
+  .status-ok { @apply text-[hsl(var(--status-ok))]; }
+  .status-warning { @apply text-[hsl(var(--status-warning))]; }
+  .status-critical { @apply text-[hsl(var(--status-critical))]; }
+  .status-degraded { @apply text-[hsl(var(--status-degraded))]; }
+
+  /* robot drawing: pull the grey render into the palette */
+  .robot-base {
+    filter: grayscale(1) brightness(0.62) contrast(1.35) sepia(1) hue-rotate(-42deg) saturate(2.6);
+  }
+  .robot-alert {
+    filter: drop-shadow(0 0 6px hsl(350 100% 55%));
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  .glow-text { text-shadow: 0 0 10px currentColor; }
+  .glow-border { box-shadow: 0 0 10px hsl(var(--primary) / 0.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .robot-alert, .animate-pulse { animation: none; }
+}

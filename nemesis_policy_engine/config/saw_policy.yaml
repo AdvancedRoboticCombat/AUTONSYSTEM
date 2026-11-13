@@ -1,0 +1,70 @@
+# Settings for saw_policy_node (the hammer-saw policy from auton_training).
+# Loaded by nemesis_gazebo/launch/nemesis.launch.py. Feet and seconds.
+#
+# Nothing below marked "measure" has been measured on the robot yet. The
+# policy was trained across a range around each value, so close is enough for
+# driving; the arm timing numbers decide where the hammer lands.
+/**:
+  ros__parameters:
+    # ── Which policy ──────────────────────────────────────────────────────
+    # A SAW_*.pt checkpoint. A relative path is taken from auton_training/.
+    # Empty: ppo_models/saw_v8a_traves_hold/SAW_upd375.pt
+    checkpoint: ""
+
+    # ── Arena: how the dashboard's arena coordinates map to the policy's ──
+    # The policy's frame: feet, origin at a corner, heading counter-clockwise
+    # from the +x axis seen from above. HOMOG_DEST in nemesis_dashboard/main.py
+    # decides what the dashboard publishes; describe it here.
+    units: "ft"              # "ft" or "m"
+    origin: "corner"         # "corner" or "center"
+    y_down: false            # true if y grows the other way (image-style): otherwise every turn is mirrored
+    # 0 = the 48 ft BattleBox with its wall bulges (the band is on the y = 0 wall).
+    # Otherwise the size of a plain rectangular test floor, at most 48 x 48.
+    arena_width_ft: 0.0
+    arena_height_ft: 0.0
+
+    # ── Heading and IMU ───────────────────────────────────────────────────
+    # The camera gives no heading. It starts from this and then follows the IMU.
+    # "opponent": the robot is set down facing the opponent (a normal start).
+    # Or a number: degrees, counter-clockwise from +x in the arena coordinates.
+    initial_heading: "opponent"
+    yaw_source: "orientation"   # "orientation": the IMU's fused yaw. "gyro": integrate angular_velocity.z
+    gyro_sign: 1.0              # -1.0 if the IMU reads clockwise as positive (mounted upside down)
+
+    # ── Safety ────────────────────────────────────────────────────────────
+    weapon_enabled: false    # false: blade and arm commands are computed but never sent (drive only)
+    stop_at_bell: false      # true: stop when fight_seconds have passed. The clock is otherwise just an
+                             # input to the policy (it paces its swings by the time left) and stays at 0
+    stale_s: 1.0             # stop driving if our position or the IMU is older than this
+                             # (the policy trained with the camera losing a robot for up to 1.5 s)
+
+    # ── Our robot (measure) ───────────────────────────────────────────────
+    half_len_ft: 0.9         # centre to front edge   (CAD body: 1.78 ft front to back)
+    half_wid_ft: 1.8         # centre to side edge    (CAD: 3.63 ft side to side)
+    half_track_ft: 1.48      # centre to tread centreline (CAD)
+    reach_ft: 0.8            # where the saw comes down, beyond the front edge (CAD: 1.67 ft ahead of centre)
+    tip_ft: 0.6              # contact radius of the saw
+    latency_s: 0.15          # camera capture to the arm starting to move
+    cmd_latency_s: 0.07      # command sent to the arm starting to move
+    fire_s: 0.35             # full swing, back to front
+    retract_s: 0.50          # full swing, front to back
+    # The arm motor drives through a slip clutch, so it is only powered while the arm travels:
+    # forward for arm_drive_s per swing, then nothing while it rests on the target, back for
+    # arm_return_s, then nothing while parked. 0 = use fire_s and retract_s. Shorten these if the
+    # clutch still slips at the end of a swing; lengthen them if the arm stops short.
+    arm_drive_s: 0.0
+    arm_return_s: 0.0
+    blade_full_erpm: 0.0     # weapon ERPM at full blade speed; 0 = no blade speed reading
+
+    # ── The fight ─────────────────────────────────────────────────────────
+    swings: 10               # swings the arm has in it; when they are used up the arm stays parked
+    fight_seconds: 180.0     # what the policy is told the fight lasts
+                             # (a new fight: ros2 topic pub --once /nemesis/policy/reset std_msgs/msg/Empty)
+
+    # ── The opponent's card: fill in before each fight ────────────────────
+    opponent_kind: "horizontal"       # none, vert, drum or horizontal
+    opponent_half_len_ft: 2.5
+    opponent_half_wid_ft: 1.0
+    opponent_weapon_fore_ft: 2.5      # weapon centre ahead of their centre (a horizontal's hub)
+    opponent_weapon_rad_ft: 1.5       # weapon contact radius (a horizontal's bar tip radius)
+    opponent_weapon_wide_ft: 0.0      # half width of a vert's or drum's front; 0 for a horizontal

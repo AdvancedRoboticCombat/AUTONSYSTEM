@@ -1,0 +1,11 @@
+# Packages that must never be installed into .venv, even as dependencies.
+# The impossible marker makes uv drop them from the resolution.
+
+# ultralytics depends on opencv-python, whose wheel has no GStreamer and would
+# shadow the system cv2 that the GigE camera pipeline needs.
+opencv-python ; python_version < "0"
+opencv-python-headless ; python_version < "0"
+
+# torch pulls in a new setuptools that breaks `colcon build --symlink-install`
+# for the ament_python packages. The system setuptools is used instead.
+setuptools ; python_version < "0"

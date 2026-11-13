@@ -224,8 +224,11 @@ DR_TREAD_SHARE   = (0.65, 0.85)   # half the track width as a share of our half 
 # Robot sizes, ft from the centre to the edge. Ours is not settled and theirs
 # differ from fight to fight, so both are drawn per fight. The policy is told
 # its own size and has to cope with theirs. (The classic rules: 2 by 2.)
-DR_OUR_HALF_LEN  = (1.50, 2.25)
-DR_OUR_HALF_WID  = (1.40, 2.10)
+# Ours, saw-v10: the CAD body is 1.78 ft front to back and 3.63 ft side to side, and the fight
+# video of 2026-06-22 shows the same: about 3.9 ft across, half that deep, forks out in front.
+# Under saw-v9 it was drawn 3 to 4.5 ft long, twice the robot.
+DR_OUR_HALF_LEN  = (0.80, 1.30)   # 0.89 for the body alone; the forks reach further
+DR_OUR_HALF_WID  = (1.65, 2.00)   # 1.81 from the CAD
 DR_EN_HALF_LEN   = (1.25, 2.50)
 DR_EN_HALF_WID   = (1.25, 2.50)
 
@@ -351,15 +354,23 @@ CLASH_KEEP       = 0.2            # share of blade speed left after it meets a w
 
 # What a hit does to the robot that takes it
 KNOCK_VERT_FT_S  = 12.0           # speed a full vert hit throws them at
-KNOCK_SPIN_FT_S  = 22.0           # speed a full hit from a spinner throws us at (10 before saw-v9: the team
+KNOCK_SPIN_FT_S  = 30.0           # speed a full hit from a spinner throws us at. A 74 kJ bar that loses most of its
+                                  # speed in a hit hands a 250 lb robot 21 to 32 ft/s. 22 under saw-v9, where a hit
+                                  # moved us a median 2.7 ft: on television it is 10 to 20. (10 before saw-v9: the team
                                   # watched the replays and a bar's hits did not look like a bar's hits)
 DMG_SPINNER      = 1.0            # a spinner's bite on us, x blade energy (the team asked for more throw, not more damage)
 HORIZ_SIDEWAYS   = 0.8            # share of a horizontal's throw that goes along its blade's travel (the rest pushes away)
 KNOCK_CLASH_FT_S = 5.0            # each robot, apart, after weapon meets weapon
 KNOCK_RECOIL     = 0.3            # share of a hit's throw that comes back at the robot that landed it
-KNOCK_YAW        = 4.0            # rad/s of spin from a full hit square on a corner
-STUN_S           = 0.40           # seconds a full hit leaves the robot without drive
-STUN_TRACTION    = 0.25           # share of traction left during that time
+KNOCK_YAW        = 10.0           # rad/s of spin from a full hit square on a corner (4 under saw-v9)
+# saw-v10, 2026-11-12: "in the show robots are flung across the map but ours feels clunky and weak".
+# A robot thrown by a spinner leaves the floor: for AIR_S x the hit's strength nothing slows it, turns
+# it or stops it spinning. It then slides on its side grip (the kinetic limit, not the quick recovery
+# of an ordinary skid) with no drive until STUN_S x the strength has passed.
+AIR_S            = 0.80           # seconds a full spinner hit keeps the robot off the floor
+STUN_S           = 1.00           # seconds a full spinner hit leaves the robot without drive, flight included (0.40 under saw-v9)
+BLOW_STUN_S      = 0.40           # seconds without drive from a blow that throws nobody: our hammer landing, weapon on weapon
+STUN_TRACTION    = 0.25           # share of traction left while sliding without drive
 DR_SQUEEZE_YAW   = (0.3, 0.8)     # share of yaw authority left while jammed between a wall and the other robot
 SQUEEZE_GAP_FT   = 0.25           # a robot this close to a wall with the other robot on it counts as jammed
 WALL_FRICTION    = 0.3            # along-wall speed lost per unit of speed into the wall
@@ -386,9 +397,11 @@ ATTACK_IN_DMG    = 0.5            # blade damage in one fight that counts as hav
 # staying on them, and "moving as fast as possible literally at all times".
 RETREAT_S        = 2.5            # seconds after a swing lands (on anything) in which backing off is paid
 RETREAT_FT       = 12.0           # ... out to this far from them (PASSIVE_FT is 14: backing off is not hiding)
-R_RETREAT_PER_FT = 0.01           # per foot of distance gained in that time (and charged per foot lost)
-R_RAM_PER_S      = 0.10           # charged while our body is on theirs in that time
-R_SLOW_PER_S     = 0.01           # x (1 - ground speed / top speed), charged all fight unless we have been thrown
+R_RETREAT_PER_FT = 0.0            # per foot of distance gained in that time. 0.01 under saw-v9; off since 2026-11-12:
+                                  # "forget about the retreat", stay on them and swing again
+R_RAM_PER_S      = 0.0            # charged while our body is on theirs in that time. 0.10 under saw-v9; off with the retreat
+R_SLOW_PER_S     = 0.03           # x (1 - ground speed / top speed), charged all fight unless we have been thrown.
+                                  # 0.01 under saw-v9; tripled 2026-11-12 to make it move faster
 R_SAW_WALL_HIT   = 0.10           # x (impact speed / V_MAX) when we run into a wall
 R_SAW_WALL_PER_S = 0.05           # while we stay against one
 PTS_MARGIN       = 0.25           # points a fight has to be ahead by at the clock to count as won

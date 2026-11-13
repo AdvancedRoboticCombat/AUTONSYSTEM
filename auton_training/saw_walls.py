@@ -2,14 +2,14 @@
 
 The team's arena map (battlebot_models/hazards.npy) is a hand-drawn grid: a
 band along the y = 0 wall with a bulge in its middle, and a bulge in the
-middle of the x = 0 and x = 48 walls. Here the same three bulges are smooth
-curves, and they are wall: nothing drives over them. The classic rules keep
-the grid as it is.
+middle of the x = 0 and x = 48 walls. Here the same three bulges are
+rectangular blocks standing out from the wall, as they are in the arena, and
+they are wall: nothing drives over them. The classic rules keep the grid as
+it is.
 
 Everything is in arena feet. ``inset_*`` is how far the wall stands in from
 the square's edge at a place along it.
 """
-import math
 
 import torch
 
@@ -23,8 +23,9 @@ BULGE_Y0 = (27.0, 15.0, 2.0)       # middle of the y = 0 wall, on top of the ban
 
 
 def _bump(s, spec):
+    """A rectangular block: the full depth within the half width of its centre, nothing outside."""
     c, hw, d = spec
-    return d * 0.5 * (1.0 + torch.cos(math.pi * ((s - c) / hw).clamp(-1.0, 1.0)))
+    return d * ((s - c).abs() <= hw).to(s.dtype)
 
 
 def inset_x0(y): return _bump(y, BULGE_X0)
@@ -50,6 +51,9 @@ def raster():
 
 def outline(step=0.5):
     """The walls as polylines for the drawings: {"x0": [[x, y], ...], "x1": ..., "y0": ...}."""
-    s = torch.arange(0.0, ARENA_FT + 1e-6, step)
+    # the regular samples, plus a point just either side of each block's two ends so its sides draw square
+    eps = 1e-3
+    edges = [c + side * hw + e for c, hw, _ in (BULGE_X0, BULGE_X1, BULGE_Y0) for side in (-1, 1) for e in (-eps, eps)]
+    s = torch.cat([torch.arange(0.0, ARENA_FT + 1e-6, step), torch.tensor(edges)]).clamp(0.0, ARENA_FT).sort().values
     pts = lambda xs, ys: [[round(float(a), 3), round(float(b), 3)] for a, b in zip(xs, ys)]
     return {"x0": pts(inset_x0(s), s), "x1": pts(ARENA_FT - inset_x1(s), s), "y0": pts(s, inset_y0(s))}

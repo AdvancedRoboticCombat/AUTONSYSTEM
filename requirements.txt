@@ -1,0 +1,35 @@
+# Python dependencies for every Nemesis component. One environment: ./.venv
+# Build it with scripts/setup_env.sh (do not pip install this file by hand:
+# the script also applies requirements-overrides.txt).
+#
+# NOT listed on purpose, because they must come from the system (apt / ROS):
+#   rclpy + message packages   (ROS 2 Jazzy, /opt/ros/jazzy)
+#   cv2                        (python3-opencv: the only build with GStreamer)
+#   gi                         (python3-gi: GStreamer bindings for the camera)
+#   tkinter                    (python3-tk)
+
+# System OpenCV is compiled against numpy 1.x; numpy 2 breaks `import cv2`.
+numpy<2
+
+# Vision (nemesis_dashboard) and policies (nemesis_policy_engine, auton_training)
+torch
+torchvision
+ultralytics
+
+# Dashboard backend
+python-socketio
+aiohttp
+pillow
+
+# Simulator / trainer (auton_training)
+scipy
+pygame
+
+# Telemetry receiver and PPM output (telemetry, nemesis_control)
+pyserial
+pySerialTransfer
+sounddevice
+soundfile
+
+# Kalman plotter
+matplotlib

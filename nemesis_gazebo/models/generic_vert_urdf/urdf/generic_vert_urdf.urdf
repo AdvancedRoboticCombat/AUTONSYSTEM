@@ -1,0 +1,228 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="generic_vert_urdf">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.0693926686483957 0.00567133641658812 0.0823225837980785" rpy="0 0 0" />
+      <mass value="87.5698442084869" />
+      <inertia ixx="0.633439181253258" ixy="-0.000989742813755044" ixz="-0.0925084613860187" iyy="1.93460785602706" iyz="-0.000335767865642296" izz="2.10995491634143" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/generic_vert_urdf/meshes/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.07 0 0.1365" rpy="0 0 0" />
+      <geometry>
+        <box size="0.606 0.717 0.263" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="fl_link">
+    <inertial>
+      <origin xyz="2.77555756156289E-17 6.93889390390723E-18 -0.0277099169774238" rpy="0 0 0" />
+      <mass value="0.853769451894322" />
+      <inertia ixx="0.00127949800497407" ixy="6.96747123174805E-26" ixz="2.0015116792751E-20" iyy="0.00127949800497407" iyz="8.16482396500782E-21" izz="0.00183834792911801" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/generic_vert_urdf/meshes/fl_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.02" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.065" length="0.088" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fl_joint" type="continuous">
+    <origin xyz="0.20476 0.23495 0.042793" rpy="1.5708 0 0" />
+    <parent link="base_link" />
+    <child link="fl_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="100" velocity="127.13" />
+  </joint>
+  <link name="rr_link">
+    <inertial>
+      <origin xyz="0 -1.38777878078145E-17 0.0278008910872139" rpy="0 0 0" />
+      <mass value="1.20824930852362" />
+      <inertia ixx="0.00245964496461435" ixy="-2.02763805704919E-19" ixz="4.78597500989398E-20" iyy="0.00245964496461435" iyz="-7.51671918590725E-20" izz="0.00394469200937269" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/generic_vert_urdf/meshes/rr_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.02" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.079" length="0.088" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="rr_joint" type="continuous">
+    <origin xyz="-0.16831 -0.23475 0.0568" rpy="1.5708 0 0" />
+    <parent link="base_link" />
+    <child link="rr_link" />
+    <axis xyz="0 0 1" />
+    <limit effort="121.4" velocity="104.72" />
+  </joint>
+  <link name="rl_link">
+    <inertial>
+      <origin xyz="0 -6.93889390390723E-18 -0.027800891087214" rpy="0 0 0" />
+      <mass value="1.20824930852362" />
+      <inertia ixx="0.00245964496461435" ixy="-2.08982880422337E-20" ixz="-7.96334312265295E-21" iyy="0.00245964496461435" iyz="-3.89387931649348E-20" izz="0.00394469200937269" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/generic_vert_urdf/meshes/rl_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.02" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.079" length="0.088" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="rl_joint" type="continuous">
+    <origin xyz="-0.16831 0.23495 0.0568" rpy="1.5708 0 0" />
+    <parent link="base_link" />
+    <child link="rl_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="121.4" velocity="104.72" />
+  </joint>
+  <link name="fr_link">
+    <inertial>
+      <origin xyz="0 0 0.0277099169774238" rpy="0 0 0" />
+      <mass value="0.853769451894322" />
+      <inertia ixx="0.00127949800497407" ixy="2.07130368911043E-19" ixz="2.24443171633582E-20" iyy="0.00127949800497407" iyz="1.00897110728447E-20" izz="0.00183834792911801" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/generic_vert_urdf/meshes/fr_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.02" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.065" length="0.088" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fr_joint" type="continuous">
+    <origin xyz="0.20476 -0.23475 0.042793" rpy="1.5708 0 0" />
+    <parent link="base_link" />
+    <child link="fr_link" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="127.13" />
+  </joint>
+  <link name="spin_link">
+    <inertial>
+      <origin xyz="6.80386217088991E-07 -2.94446914606006E-06 -0.164167416214641" rpy="0 0 0" />
+      <mass value="20.4461621935295" />
+      <inertia ixx="0.277028436314203" ixy="0.079286942088048" ixz="-3.35270222272356E-07" iyy="0.265958899408207" iyz="1.73500142871376E-07" izz="0.18913547914032" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/generic_vert_urdf/meshes/spin_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.16" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.115" length="0.32" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="spin_joint" type="continuous">
+    <origin xyz="0.29524 -0.1599 0.13618" rpy="1.5708 0 0" />
+    <parent link="base_link" />
+    <child link="spin_link" />
+    <axis xyz="0 0 1" />
+    <limit effort="50" velocity="733.04" />
+  </joint>
+  <!-- Plugins -->
+  <gazebo>
+    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>false</publish_link_pose>
+      <publish_visual_pose>false</publish_visual_pose>
+      <publish_collision_pose>false</publish_collision_pose>
+      <publish_sensor_pose>false</publish_sensor_pose>
+      <publish_model_pose>true</publish_model_pose>
+      <publish_nested_model_pose>true</publish_nested_model_pose>
+      <use_pose_vector_msg>false</use_pose_vector_msg>
+      <static_publisher>false</static_publisher>
+      <update_frequency>200</update_frequency>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>rl_joint</joint_name>
+      <topic>/opponent/left_wheels/cmd_vel</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>rr_joint</joint_name>
+      <topic>/opponent/right_wheels/cmd_vel</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>fl_joint</joint_name>
+      <topic>/opponent/left_wheels/cmd_vel_f</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>fr_joint</joint_name>
+      <topic>/opponent/right_wheels/cmd_vel_f</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>spin_joint</joint_name>
+      <topic>/opponent/weapon_motor/cmd_vel</topic>
+    </plugin>
+  </gazebo>
+  <gazebo reference="base_link">
+    <mu1>0.3</mu1>
+    <mu2>0.3</mu2>
+  </gazebo>
+  <gazebo reference="fl_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="rr_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="rl_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="fr_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="spin_link">
+    <mu1>0.3</mu1>
+    <mu2>0.3</mu2>
+  </gazebo>
+</robot>

@@ -1,0 +1,44 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# ROS 2 / colcon
+build/
+install/
+log/
+
+# Node
+node_modules/
+dist/
+
+# Run-time output
+logs/
+*.log
+
+# Captured media and calibration sessions (large; keep them outside git)
+nemesis_dashboard/saved_camera_recordings/
+nemesis_dashboard/camera_calibration_images/
+nemesis_dashboard/camera_calibration_videos/
+nemesis_control/src/ppm_test.wav
+telemetry/ros_node/data.json
+
+# auton_training output
+auton_training/web/plays/
+auton_training/eval/poc180/
+auton_training/ppo_models/**/SAW_latest.pt
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Fight recordings
+*.mp4
+
+# Vision dataset, pretrained weights and training runs (large; rebuilt by ZACVISIONQUEST/*.py)
+ZACVISIONQUEST/Zac_vis_final_segmented_dataset/
+ZACVISIONQUEST/dataset/
+ZACVISIONQUEST/runs/
+ZACVISIONQUEST/weights/

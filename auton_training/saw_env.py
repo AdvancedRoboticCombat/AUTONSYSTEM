@@ -87,7 +87,7 @@ from config import (
     DMG_VERT, DMG_HAMMER_SAW, DMG_HAMMER_BLOW, DMG_CLASH, DMG_SPINNER,
     RETREAT_S, RETREAT_FT, R_RETREAT_PER_FT, R_RAM_PER_S, R_SLOW_PER_S, WALL_FRICTION,
     REBITE_S, CLASH_KEEP, KNOCK_VERT_FT_S, KNOCK_SPIN_FT_S, KNOCK_CLASH_FT_S, KNOCK_RECOIL, KNOCK_YAW, HORIZ_SIDEWAYS,
-    STUN_S, STUN_TRACTION, DR_SQUEEZE_YAW, SQUEEZE_GAP_FT, HAZARD_DMG_PER_S, HAZARD_DMG_ENTER, R_DAMAGE, R_TAKEN_SHARE, ATTACK_IN_DMG, PTS_MARGIN, STRIKE_S,
+    STUN_S, AIR_S, BLOW_STUN_S, STUN_TRACTION, DR_SQUEEZE_YAW, SQUEEZE_GAP_FT, HAZARD_DMG_PER_S, HAZARD_DMG_ENTER, R_DAMAGE, R_TAKEN_SHARE, ATTACK_IN_DMG, PTS_MARGIN, STRIKE_S,
     FIGHT_LEN_S, R_PASSIVE_PER_S, PASSIVE_FT, PASSIVE_CLOSE_FT_S, PASSIVE_PTS_PER_S,
     SPAWN_CLEAR_FT, SPAWN_PINNED, SPAWN_CORNERED, SPAWN_CONTACT, SPAWN_PINNING, angle_wrap,
     SAW_OBS_RING, CAMERA_PERIOD_STEPS, BELL_SHORT_P, BELL_FACE_RAD, PRESS_V_CAP_MPH, R_FOUL, DR_HAMMER_REACH,
@@ -107,7 +107,7 @@ from saw_gate import (
 import saw_walls
 from saw_field import SawField, Scenario, PROFILE_TRAVES, EN_ACT_LAG_S, HEADING_MODES
 
-PHYSICS_VERSION = "saw-v9"
+PHYSICS_VERSION = "saw-v10"
 
 # Weapon kinds: nothing (drill targets), the three a scripted opponent can
 # carry, and our hammer saw (also carried by a self-play copy of us)
@@ -419,6 +419,7 @@ class SawEnv(BattleEnv):
         # Bodies: half length (along the heading) and half width, ft
         self.o_len, self.o_wid, self.e_len, self.e_wid = full(2.0), full(2.0), full(2.0), full(2.0)
         self.o_stun, self.e_stun = f(n), f(n)            # seconds of drive still lost to the last hit
+        self.o_air, self.e_air = f(n), f(n)              # seconds still off the floor after being thrown
         self.front_margin = full(0.7)                    # ft: how far a spinner's weapon side reaches back and out
         self.armour_o = full(0.4)                        # share of a blade's full energy our armour shrugs off
         self.armour_e = full(0.4)                        # ... and theirs
@@ -656,7 +657,7 @@ class SawEnv(BattleEnv):
         self.armour_o[idx] = _dr(k, DR_BITE_FLOOR)
         self.armour_e[idx] = _dr(k, DR_BITE_FLOOR)
 
-        for t in (self.o_stun, self.e_stun, self.retreat):
+        for t in (self.o_stun, self.e_stun, self.o_air, self.e_air, self.retreat):
             t[idx] = 0.0
         for t in (self.o_squeezed, self.e_squeezed, self.o_on_wall, self.o_on_hazard):
             t[idx] = False
@@ -912,10 +913,12 @@ class SawEnv(BattleEnv):
         so.step(cmd[:, 2], cmd[:, 3], cmd[:, 0].abs(), alive)
         se.step(en[:, 2], en[:, 3], en[:, 0].abs(), alive)
 
-        # A robot that has just been thrown has no drive and little grip. A
-        # spinning blade resists the turn. Jammed on a wall, a robot can
-        # barely turn at all. Reverse can be a slower gear than forward.
+        # A robot that has just been thrown is off the floor for a moment
+        # (nothing slows or turns it), then slides without drive and with
+        # little grip. A spinning blade resists the turn. Jammed on a wall, a
+        # robot can barely turn at all. Reverse can be a slower gear than forward.
         o_out, e_out = self.o_stun > 0, self.e_stun > 0
+        o_fly, e_fly = self.o_air > 0, self.e_air > 0
         one = torch.ones_like(alive)
         o_thr = torch.where(cmd[:, 0] < 0, cmd[:, 0] * self.rev, cmd[:, 0])
         e_thr = torch.where(en[:, 0] < 0, en[:, 0] * self.e_rev, en[:, 0])
@@ -925,16 +928,18 @@ class SawEnv(BattleEnv):
             o_thr * ~o_out, cmd[:, 1] * YAW_RATE_MAX * ~o_out, self.our, alive,
             traction=torch.where(o_out, STUN_TRACTION, 1.0),
             yaw_scale=(1.0 - so.gyro * so.blade) * torch.where(self.o_squeezed, self.squeeze_yaw, one),
-            scrape_walls=True)
+            scrape_walls=True, free=o_fly, sliding=o_out & ~o_fly, wall_in=torch.minimum(self.o_len, self.o_wid))
         (self.ex, self.ey, self.ea, self.evx, self.e_omega,
          self.e_drifting, self.e_drift, _) = integrate_robot(
             self.ex, self.ey, self.ea, self.evx, self.e_omega, self.e_drifting, self.e_drift,
             e_thr * ~e_out, en[:, 1] * ~e_out, self.enemy, alive,
             traction=torch.where(e_out, STUN_TRACTION, 1.0),
             yaw_scale=(1.0 - se.gyro * se.blade) * torch.where(self.e_squeezed, self.squeeze_yaw, one),
-            scrape_walls=True)
+            scrape_walls=True, free=e_fly, sliding=e_out & ~e_fly, wall_in=torch.minimum(self.e_len, self.e_wid))
         self.o_stun = (self.o_stun - DT * alive).clamp(min=0.0)
         self.e_stun = (self.e_stun - DT * alive).clamp(min=0.0)
+        self.o_air = (self.o_air - DT * alive).clamp(min=0.0)
+        self.e_air = (self.e_air - DT * alive).clamp(min=0.0)
 
         self._rules(our_impact)
 
@@ -1052,9 +1057,10 @@ class SawEnv(BattleEnv):
         # blade's tip speed; losing the drive goes with the damage.
         v = o_vert * o_blade * so.power.sqrt()
         self._throw(False, -cos_o * v * KNOCK_VERT_FT_S, -sin_o * v * KNOCK_VERT_FT_S,
-                    v * spin(o_rx, o_ry, self.ex, self.ey, -cos_o, -sin_o, e_size), o_vert * o_energy * STUN_S)
+                    v * spin(o_rx, o_ry, self.ex, self.ey, -cos_o, -sin_o, e_size), o_vert * o_energy * STUN_S,
+                    air=o_vert * o_energy * AIR_S)
         self._throw(True, cos_o * v * KNOCK_VERT_FT_S * so.recoil, sin_o * v * KNOCK_VERT_FT_S * so.recoil)
-        self.e_stun = torch.maximum(self.e_stun, o_hammer * so.strike * o_energy * STUN_S)
+        self.e_stun = torch.maximum(self.e_stun, o_hammer * so.strike * o_energy * BLOW_STUN_S)
 
         # Their spinner on us. A vert or a drum throws us the way it points.
         # A horizontal throws us mostly along its blade's travel where it
@@ -1069,16 +1075,20 @@ class SawEnv(BattleEnv):
         r = e_vert * e_blade * se.power.sqrt()                                  # a self-play copy's vert on us
         wx = tx * f * KNOCK_SPIN_FT_S - cos_e * r * KNOCK_VERT_FT_S
         wy = ty * f * KNOCK_SPIN_FT_S - sin_e * r * KNOCK_VERT_FT_S
+        # The hit's strength sets how long we are in the air and without drive. The spinner
+        # that landed it goes the other way with its recoil share of all three.
+        strength = (e_front.float() + e_vert) * e_energy
         self._throw(True, wx, wy,
                     f * spin(hit_x, hit_y, self.ox, self.oy, tx, ty, o_size)
                     + r * spin(e_rx, e_ry, self.ox, self.oy, -cos_e, -sin_e, o_size),
-                    (e_front.float() + e_vert) * e_energy * STUN_S)
-        self._throw(False, -wx * se.recoil, -wy * se.recoil)
+                    strength * STUN_S, air=strength * AIR_S)
+        self._throw(False, -wx * se.recoil, -wy * se.recoil,
+                    stun=strength * se.recoil * STUN_S, air=strength * se.recoil * AIR_S)
 
         c = clash.float()                                      # weapon on weapon: both go backwards
         ax, ay = dx / dist, dy / dist
-        self._throw(True,  -ax * c * KNOCK_CLASH_FT_S, -ay * c * KNOCK_CLASH_FT_S, stun=c * STUN_S * 0.5)
-        self._throw(False,  ax * c * KNOCK_CLASH_FT_S,  ay * c * KNOCK_CLASH_FT_S, stun=c * STUN_S * 0.5)
+        self._throw(True,  -ax * c * KNOCK_CLASH_FT_S, -ay * c * KNOCK_CLASH_FT_S, stun=c * BLOW_STUN_S * 0.5)
+        self._throw(False,  ax * c * KNOCK_CLASH_FT_S,  ay * c * KNOCK_CLASH_FT_S, stun=c * BLOW_STUN_S * 0.5)
 
         # A hit also shakes our heading estimate: the gyro it is built on
         # saturates in the impact. It settles again as the estimate does
@@ -1166,27 +1176,34 @@ class SawEnv(BattleEnv):
         self.e_drift = self.e_drift + impulse * (-sin_e * nx + cos_e * ny)
 
         push = torch.where(touching, depth * 0.5, 0.0)
-        lo, hi = WALL_CLAMP_IN, ARENA_FT - WALL_CLAMP_IN
-        self.ox = (self.ox - nx * push).clamp(lo, hi)
-        self.oy = (self.oy - ny * push).clamp(lo, hi)
-        self.ex = (self.ex + nx * push).clamp(lo, hi)
-        self.ey = (self.ey + ny * push).clamp(lo, hi)
+        # each centre stays as far from the walls as its body's short half size (_wall keeps the corners out)
+        o_lo, e_lo = torch.minimum(self.o_len, self.o_wid), torch.minimum(self.e_len, self.e_wid)
+        keep = lambda v, lo: torch.maximum(torch.minimum(v, ARENA_FT - lo), lo)
+        self.ox = keep(self.ox - nx * push, o_lo)
+        self.oy = keep(self.oy - ny * push, o_lo)
+        self.ex = keep(self.ex + nx * push, e_lo)
+        self.ey = keep(self.ey + ny * push, e_lo)
 
-    def _throw(self, ours, wx, wy, spin=0.0, stun=None):
-        """Add a world-frame velocity (wx, wy), a yaw rate and a loss of
-        drive to our robot or theirs."""
+    def _throw(self, ours, wx, wy, spin=0.0, stun=None, air=None):
+        """Add a world-frame velocity (wx, wy), a yaw rate, a loss of drive
+        (``stun``, s) and time off the floor (``air``, s) to our robot or
+        theirs."""
         if ours:
             c, s = torch.cos(self.oa), torch.sin(self.oa)
             self.ovx, self.o_drift = self.ovx + wx * c + wy * s, self.o_drift - wx * s + wy * c
             self.o_omega = self.o_omega + spin
             if stun is not None:
                 self.o_stun = torch.maximum(self.o_stun, stun)
+            if air is not None:
+                self.o_air = torch.maximum(self.o_air, air)
         else:
             c, s = torch.cos(self.ea), torch.sin(self.ea)
             self.evx, self.e_drift = self.evx + wx * c + wy * s, self.e_drift - wx * s + wy * c
             self.e_omega = self.e_omega + spin
             if stun is not None:
                 self.e_stun = torch.maximum(self.e_stun, stun)
+            if air is not None:
+                self.e_air = torch.maximum(self.e_air, air)
 
     def _clock(self):
         """The clock is the only thing that ends a fight. It is then scored

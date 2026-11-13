@@ -161,7 +161,7 @@ class RobotParams:
 
 def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
                     throttle, target_omega, par, alive,
-                    traction=None, yaw_scale=None, scrape_walls=False):
+                    traction=None, yaw_scale=None, scrape_walls=False, free=None, sliding=None, wall_in=None):
     """One 100 Hz step of the differential-drive model. Both robots go through
     this exact function; only the state tensors and ``par`` differ.
 
@@ -184,6 +184,16 @@ def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
         scrape_walls  True: a wall takes only the motion into it, so a robot
                    can scrape along one. False: any wall contact halves its
                    speed every step, at any angle.
+        free       (n,) bool: the robot is off the floor (thrown by a hit).
+                   Its speed, slide and spin carry on unchanged; only a wall
+                   stops it.
+        sliding    (n,) bool: back on the floor after a throw, without
+                   drive. Its sideways slide slows at the kinetic grip limit
+                   instead of recovering in a fraction of a second.
+        wall_in    (n,) ft: the closest this robot's centre can come to a
+                   wall, in place of WALL_CLAMP_IN (a 4 ft square body). The
+                   saw rules give the body's short half size and keep its
+                   corners out of the wall themselves.
 
     Returns the new state and the speed (ft/s) at which the robot ran into a
     wall this step, 0 where it did not touch one.
@@ -191,6 +201,7 @@ def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
     dalpha  = par.dalpha  if traction  is None else par.dalpha * traction
     dv_max  = par.dv_max  if traction  is None else par.dv_max * traction
     yaw_cap = par.yaw_cap if yaw_scale is None else par.yaw_cap * yaw_scale
+    v_in, omega_in, drift_in, a_in = v, omega, drift_vel, a
 
     # 0. What the drive makes of the command: a deadband around zero throttle,
     #    a yaw gain that is not exactly one, and a pull to one side under power
@@ -201,12 +212,16 @@ def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
     omega = omega + torch.maximum(torch.minimum(target_omega - omega, dalpha), -dalpha)
     cap   = torch.minimum(par.a_lat_cap / v.abs().clamp(min=0.5), yaw_cap)
     omega = torch.maximum(torch.minimum(omega, cap), -cap)
+    if free is not None:
+        omega = torch.where(free, omega_in, omega)                 # nothing to turn against in the air
 
     # 2. Forward speed: turning lowers the reachable speed, then actuator lag
     #    and the traction limit
     target_v = throttle * par.v_max * (1.0 - par.bleed * omega.abs() / par.yaw_cap)
     smoothed = v * par.ctrl_alpha + target_v * (1.0 - par.ctrl_alpha)
     v = v + torch.maximum(torch.minimum(smoothed - v, dv_max), -dv_max) * alive
+    if free is not None:
+        v = torch.where(free, v_in, v)
 
     # 3. Heading
     a = angle_wrap(a + omega * DT * alive)
@@ -222,7 +237,20 @@ def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
     deficit  = (demand.abs() - par.grip_k).clamp(min=0.0) * drifting
     slide    = drift_vel - torch.sign(demand) * deficit * DT
     v         = v + omega * slide * DT * drifting * alive          # sliding costs forward speed
-    drift_vel = torch.where(drifting, slide, drift_vel * _DRIFT_DECAY)
+    recovered = drift_vel * _DRIFT_DECAY
+    if sliding is not None:
+        # thrown and landed: the slide is braked by friction, a few ft/s every tenth of a second
+        braked = torch.sign(drift_vel) * (drift_vel.abs() - par.grip_k * DT).clamp(min=0.0)
+        recovered = torch.where(sliding, braked, recovered)
+    drift_vel = torch.where(drifting, slide, recovered)
+    if free is not None:
+        # In the air the robot keeps going the way it was thrown while its body spins under it:
+        # the same ground velocity, re-expressed along the new heading
+        turn = a - a_in
+        ct, st = torch.cos(turn), torch.sin(turn)
+        v = torch.where(free, ct * v_in + st * drift_in, v)
+        drift_vel = torch.where(free, -st * v_in + ct * drift_in, drift_vel)
+        drifting = drifting & ~free
 
     # 5. Position
     cos_a, sin_a = torch.cos(a), torch.sin(a)
@@ -232,7 +260,8 @@ def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
     new_y = y + vy * DT * alive
 
     # 6. Walls are solid
-    lo, hi = WALL_CLAMP_IN, ARENA_FT - WALL_CLAMP_IN
+    lo = WALL_CLAMP_IN if wall_in is None else wall_in
+    hi = ARENA_FT - lo
     hit_x = (new_x < lo) | (new_x > hi)
     hit_y = (new_y < lo) | (new_y > hi)
     wall_impact = (hit_x * vx.abs() + hit_y * vy.abs()) * alive
@@ -250,7 +279,10 @@ def integrate_robot(x, y, a, v, omega, drifting, drift_vel,
         # Classic rules: the robot stops against the wall and has to turn out
         v         = torch.where(touching, v * WALL_SCRUB, v)
         drift_vel = torch.where(touching, torch.zeros_like(drift_vel), drift_vel)
-    return (new_x.clamp(lo, hi), new_y.clamp(lo, hi), a, v, omega, drifting, drift_vel, wall_impact)
+    if wall_in is None:
+        return (new_x.clamp(lo, hi), new_y.clamp(lo, hi), a, v, omega, drifting, drift_vel, wall_impact)
+    return (torch.maximum(torch.minimum(new_x, hi), lo), torch.maximum(torch.minimum(new_y, hi), lo),
+            a, v, omega, drifting, drift_vel, wall_impact)
 
 
 # ─── Sensors ──────────────────────────────────────────────────────────────

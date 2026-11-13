@@ -439,7 +439,7 @@ async function startLive() {
     btn.textContent = "End the fight"; btn.setAttribute("aria-pressed", "true");
     $("#live-hint").hidden = false; $("#seek").disabled = true;
     setPlaying(true);
-    LIVE.timer = setInterval(tickLive, 80);
+    LIVE.timer = setInterval(tickLive, 33);                    // one request per control step: keys are read 30 times a second
   } catch (e) { console.error(e); btn.textContent = "Could not start: " + e.message; setTimeout(() => { btn.textContent = "Fight the policy"; }, 4000); }
   btn.disabled = false;
 }
@@ -467,7 +467,7 @@ async function tickLive() {
     else R.dmgMax = Math.max(R.dmgMax, doc.frames.at(-1)[10], doc.frames.at(-1)[11]);
     if (window.ArenaRenderer?.grow) window.ArenaRenderer.grow(doc);
     const total = (doc.frames.length - 1) * doc.dt;
-    if (total - R.t > 0.4) R.t = total - 0.1;                 // never fall far behind the sim
+    if (total - R.t > 0.15) R.t = total - 0.04;               // stay within a frame or two of the sim: what you see is what you are steering
     if (!R.playing) setPlaying(true);
     if (out.done) stopLive();
   } catch (e) { console.error(e); stopLive(); }

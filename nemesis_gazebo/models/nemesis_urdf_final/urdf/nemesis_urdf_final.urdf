@@ -1,0 +1,303 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="nemesis_urdf_final">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.072485840126976 0.000878128522176701 0.0530170601622731" rpy="0 0 0" />
+      <mass value="71.799" />
+      <inertia ixx="1.47033658329359" ixy="0.000907552946275019" ixz="-0.00108687384099682" iyy="0.23253579059547" iyz="1.25304543165653E-05" izz="1.64895740075357" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.051 0 0.1075" rpy="0 0 0" />
+      <geometry>
+        <box size="0.542 1.106 0.165" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="fr_link">
+    <inertial>
+      <origin xyz="5.20417042793042E-18 0 -0.034925" rpy="0 0 0" />
+      <mass value="0.530106742248451" />
+      <inertia ixx="0.000577833978254282" ixy="-1.5376817735827E-20" ixz="-1.11226969365801E-20" iyy="0.000577833978254282" iyz="9.87164357981292E-21" izz="0.000725837105486886" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/fr_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.035" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.0508" length="0.07" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fr_joint" type="continuous">
+    <origin xyz="0.116905103778529 -0.486399448768143 0.0360044999998726" rpy="1.57079632679516 0 0" />
+    <parent link="base_link" />
+    <child link="fr_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="67.65" velocity="137" />
+  </joint>
+  <link name="fl_link">
+    <inertial>
+      <origin xyz="-2.60208521396521E-18 2.77555756156289E-17 0.0349250000000002" rpy="0 0 0" />
+      <mass value="0.530106742248452" />
+      <inertia ixx="0.000577833978254283" ixy="-8.37160822969931E-21" ixz="3.66861590481234E-21" iyy="0.000577833978254283" iyz="8.9471865272034E-21" izz="0.000725837105486886" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/fl_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.035" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.0508" length="0.07" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fl_joint" type="continuous">
+    <origin xyz="0.116905103778678 0.48642055123174 0.0360045000001302" rpy="1.57079632679516 0 0" />
+    <parent link="base_link" />
+    <child link="fl_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="67.65" velocity="137" />
+  </joint>
+  <link name="rr_link">
+    <inertial>
+      <origin xyz="2.77555756156289E-17 0 -0.034925" rpy="0 0 0" />
+      <mass value="0.530106742248451" />
+      <inertia ixx="0.000577833978254282" ixy="-6.57133315564144E-34" ixz="7.81158568717963E-20" iyy="0.000577833978254282" iyz="3.46101940476848E-32" izz="0.000725837105486885" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/rr_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.035" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.0508" length="0.07" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="rr_joint" type="continuous">
+    <origin xyz="-0.124394896221245 -0.486399448768278 0.0360044999999484" rpy="1.5707963267949 0 0" />
+    <parent link="base_link" />
+    <child link="rr_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="67.65" velocity="137" />
+  </joint>
+  <link name="rl_link">
+    <inertial>
+      <origin xyz="-2.77555756156289E-17 0 0.0349250000000001" rpy="0 0 0" />
+      <mass value="0.530106742248451" />
+      <inertia ixx="0.000577833978254282" ixy="-9.69911067118596E-21" ixz="-4.52172020251729E-20" iyy="0.000577833978254282" iyz="8.02272947465614E-21" izz="0.000725837105486886" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/rl_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.035" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.0508" length="0.07" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="rl_joint" type="continuous">
+    <origin xyz="-0.124394896221317 0.486420551231748 0.0360044999999787" rpy="1.57079632679516 0 0" />
+    <parent link="base_link" />
+    <child link="rl_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="67.65" velocity="137" />
+  </joint>
+  <link name="arm_link">
+    <inertial>
+      <origin xyz="-0.208901861078773 0.00196244868435019 0.0540199759679735" rpy="0 0 0" />
+      <mass value="4.21851489990125" />
+      <inertia ixx="0.0118931917978385" ixy="0.00212551422544511" ixz="-3.63944800930124E-05" iyy="0.0639697550776977" iyz="6.92503836058097E-07" izz="0.0757503834939511" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/arm_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.686274509803922 0.658823529411765 0.63921568627451 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.1935 -0.0355 0.054" rpy="0 0 0" />
+      <geometry>
+        <box size="0.479 0.247 0.134" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_joint" type="revolute">
+    <origin xyz="0.121667603779322 0.0539855512317503 0.144462499999938" rpy="1.5707963267949 0 0" />
+    <parent link="base_link" />
+    <child link="arm_link" />
+    <axis xyz="0 0 -1" />
+    <limit lower="0" upper="2.95" effort="308.3" velocity="37.9" />
+  </joint>
+  <link name="spin_link">
+    <inertial>
+      <origin xyz="-0.00011885 8.948E-05 -0.018527" rpy="0 0 0" />
+      <mass value="10.135" />
+      <inertia ixx="0.057235" ixy="0.01524" ixz="2.1756E-09" iyy="0.048472" iyz="6.7124E-09" izz="0.10266" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://nemesis_gazebo/models/nemesis_urdf_final/meshes/spin_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.64706 0.61961 0.58824 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.009" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.18" length="0.03" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="spin_joint" type="continuous">
+    <origin xyz="-0.387281190444465 0.0423544999999996 0.0630237499999999" rpy="0 0 0" />
+    <parent link="arm_link" />
+    <child link="spin_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="19.6" velocity="387" />
+  </joint>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Gazebo plugins
+       ═══════════════════════════════════════════════════════════════════ -->
+  <gazebo>
+    <!-- Pose publisher (ground-truth /model/nemesis/pose) -->
+    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>false</publish_link_pose>
+      <publish_visual_pose>false</publish_visual_pose>
+      <publish_collision_pose>false</publish_collision_pose>
+      <publish_sensor_pose>false</publish_sensor_pose>
+      <publish_model_pose>true</publish_model_pose>
+      <publish_nested_model_pose>true</publish_nested_model_pose>
+      <use_pose_vector_msg>false</use_pose_vector_msg>
+      <static_publisher>false</static_publisher>
+      <update_frequency>200</update_frequency>
+    </plugin>
+    <!-- Wheel controllers (left = fl + rl via mimic, right = fr + rr via mimic) -->
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>fl_joint</joint_name>
+      <topic>/nemesis/left_wheels/cmd_vel</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>rl_joint</joint_name>
+      <topic>/nemesis/left_wheels/cmd_vel</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>fr_joint</joint_name>
+      <topic>/nemesis/right_wheels/cmd_vel</topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>rr_joint</joint_name>
+      <topic>/nemesis/right_wheels/cmd_vel</topic>
+    </plugin>
+    <!-- Arm -->
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>arm_joint</joint_name>
+      <topic>/nemesis/arm_motor/cmd_vel</topic>
+    </plugin>
+    <!-- Weapon spinner -->
+    <plugin filename="gz-sim-joint-controller-system" name="gz::sim::systems::JointController">
+      <joint_name>spin_joint</joint_name>
+      <topic>/nemesis/weapon_motor/cmd_vel</topic>
+    </plugin>
+  </gazebo>
+  <!-- IMU sensor on base_link -->
+  <gazebo reference="base_link">
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>200</update_rate>
+      <imu>
+        <angular_velocity>
+          <x>
+            <noise type="none" />
+          </x>
+          <y>
+            <noise type="none" />
+          </y>
+          <z>
+            <noise type="none" />
+          </z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x>
+            <noise type="none" />
+          </x>
+          <y>
+            <noise type="none" />
+          </y>
+          <z>
+            <noise type="none" />
+          </z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+  <gazebo reference="base_link">
+    <mu1>0.3</mu1>
+    <mu2>0.3</mu2>
+  </gazebo>
+  <gazebo reference="fr_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="fl_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="rr_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="rl_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+  </gazebo>
+  <gazebo reference="arm_link">
+    <mu1>0.3</mu1>
+    <mu2>0.3</mu2>
+  </gazebo>
+  <gazebo reference="spin_link">
+    <!-- A spinning disc that grips what it touches launches the robot. A saw cuts and slips. -->
+    <mu1>0.05</mu1>
+    <mu2>0.05</mu2>
+  </gazebo>
+</robot>

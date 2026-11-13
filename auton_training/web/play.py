@@ -41,6 +41,19 @@ _game = None
 
 
 def newest_checkpoint():
+    # DODGE_PLAY_CHECKPOINT picks the policy to fight: a checkpoint file, or a run folder
+    # (its newest SAW_upd*.pt). Relative paths are taken from this folder's parent.
+    chosen = os.environ.get("DODGE_PLAY_CHECKPOINT")
+    if chosen:
+        path = Path(chosen) if os.path.isabs(chosen) else ROOT / chosen
+        if path.is_dir():
+            found = sorted(path.glob("SAW_upd*.pt"), key=lambda p: p.stat().st_mtime)
+            if not found:
+                raise FileNotFoundError(f"no SAW_upd*.pt in {path}")
+            return found[-1]
+        if not path.is_file():
+            raise FileNotFoundError(f"DODGE_PLAY_CHECKPOINT: {path} does not exist")
+        return path
     for run in PREFER:
         found = sorted((ROOT / "ppo_models" / run).glob("SAW_upd*.pt"), key=lambda p: p.stat().st_mtime)
         if found:

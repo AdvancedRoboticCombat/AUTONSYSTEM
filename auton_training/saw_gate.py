@@ -16,8 +16,7 @@ team fills in before the fight, a per-fight calibration of our own robot
 the simulator's true state. Everything here is tensors in, tensors out, with
 the state in one plain object (ArmGate), using only + - * /, sin cos atan2
 sqrt abs, minimum maximum clamp where, comparisons, & | ~, any and indexing,
-so the robot can run a numpy copy of it. tests/test_gate.py holds a scalar
-reference of the prediction that is the template for that copy.
+so the robot can run a numpy copy of it.
 
 Units: ft, s, rad, world frame (origin at an arena corner, headings
 atan2(y, x)). All per-row tensors are (n,) unless said otherwise.
