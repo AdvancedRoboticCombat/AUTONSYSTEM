@@ -472,19 +472,30 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
     ? "fixed inset-0 z-[9999] bg-background flex flex-col"
     : "";
 
+  const feedButton =
+    "border border-primary/60 bg-background/80 backdrop-blur text-primary hover:bg-primary hover:text-black transition-colors";
+
   const inner = (
     <div className={`relative w-full h-full bg-black/60 border border-primary/25 overflow-hidden ${expanded ? "flex-1" : ""}`}>
       <canvas ref={canvasRef} className="w-full h-full" onClick={(e) => handleClickRef.current(e)} />
-      {onToggleExpand && (
+      <div className="absolute top-2 right-2 flex gap-2" style={{ zIndex: 10000 }}>
         <button
-          onClick={onToggleExpand}
-          className="absolute top-2 right-2 p-1.5 border border-primary/60 bg-background/80 backdrop-blur text-primary hover:bg-primary hover:text-black transition-colors"
-          style={{ zIndex: 10000 }}
-          title={expanded ? "Collapse camera" : "Expand camera"}
+          onClick={() => socketRef.current?.emit("trigger-action", { key: "fight_video_btn_pressed" })}
+          className={`${feedButton} px-2 text-xs uppercase tracking-widest`}
+          title="Play the recorded fight through the detector instead of the camera (press again to restart)"
         >
-          {expanded ? <Minimize size={16} /> : <Maximize size={16} />}
+          Run fight video
         </button>
-      )}
+        {onToggleExpand && (
+          <button
+            onClick={onToggleExpand}
+            className={`${feedButton} p-1.5`}
+            title={expanded ? "Collapse camera" : "Expand camera"}
+          >
+            {expanded ? <Minimize size={16} /> : <Maximize size={16} />}
+          </button>
+        )}
+      </div>
     </div>
   );
 

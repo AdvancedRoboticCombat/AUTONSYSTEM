@@ -42,6 +42,10 @@ class Detection:
 class Detector(ABC):
     """Abstract base class for a single-frame object detector."""
 
+    # Class index the model gives Nemesis, or None when the model has a single
+    # "robot" class and cannot tell the two robots apart.
+    nemesis_class: Optional[int] = None
+
     @abstractmethod
     def detect(self, frame: np.ndarray) -> List[Detection]:
         """Run inference on one BGR frame and return detections."""

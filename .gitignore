@@ -37,8 +37,12 @@ auton_training/ppo_models/**/SAW_latest.pt
 # Fight recordings
 *.mp4
 
-# Vision dataset, pretrained weights and training runs (large; rebuilt by ZACVISIONQUEST/*.py)
+# Vision dataset, Unity clips, pretrained weights and training runs (large; rebuilt by ZACVISIONQUEST/*.py)
 ZACVISIONQUEST/Zac_vis_final_segmented_dataset/
+ZACVISIONQUEST/unity_renders/
 ZACVISIONQUEST/dataset/
 ZACVISIONQUEST/runs/
 ZACVISIONQUEST/weights/
+
+# SIM2REAL recordings (video and logs; large)
+SIM2REAL/runs/

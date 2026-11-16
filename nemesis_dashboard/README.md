@@ -20,8 +20,21 @@ scripts/camera.sh               # camera only: settings, preview, YOLO overlay, 
 scripts/camera.sh --check       # no window: find the camera and print FPS
 scripts/dashboard.sh            # camera settings window, then backend + web UI at http://localhost:8080
 scripts/dashboard.sh --skip-setup
+scripts/dashboard.sh --fight-video     # no camera: play a recorded fight through the detector
 scripts/all.sh                  # the dashboard together with the autonomy nodes
 ```
+
+`--fight-video` (or the "Run fight video" button on the live feed, which also
+restarts it) plays `FIGHT_VIDEO_PATH` at its own frame rate through the
+two-class model `FIGHT_MODEL_PATH`, which tells Nemesis from the opponent by
+class. Arena positions come from `fight_video_homography.json` when that file
+exists. `scripts/tools/record_fight_dashboard.sh OUT.mp4` records the screen
+while the fight plays (the dashboard must already be running).
+
+`--record DIR` (alone or with `--skip-setup` / `--fight-video`) also saves every
+grabbed frame to `DIR/video.mp4` and, per saved frame, a row `frame, t` in
+`DIR/frames.csv` (`t` = `time.time()` at the grab). Frames the encoder cannot keep
+up with are dropped and counted in the terminal; `--record-scale 0.5` halves the size.
 
 ## Layout
 

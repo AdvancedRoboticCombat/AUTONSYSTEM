@@ -4,7 +4,7 @@ Build the clean train / valid / test split from the contaminated dataset.
     python ZACVISIONQUEST/build_dataset.py
 
 Reads   ZACVISIONQUEST/Zac_vis_final_segmented_dataset/{train,valid}
-Writes  ZACVISIONQUEST/dataset/{train,valid,test}/{images,labels}, data yamls, manifest.csv
+Writes  ZACVISIONQUEST/dataset/{train,valid,test}/{images,labels}, data*.yaml, manifest.csv
 
 The original folder is not touched. Images are hard links, so the clean set
 takes no extra disk space.
@@ -114,6 +114,23 @@ def md5(path):
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
+def write_yamls():
+    """The data files training reads. They differ only in what is trained on; valid and test are always the same."""
+    names = "\n".join(f"  {i}: {n}" for i, n in enumerate(NAMES))
+    tail = f"val: valid/images\ntest: test/images\nnames:\n{names}\n"
+    (OUT / "data.yaml").write_text(
+        f"# real footage + Unity robots pasted onto our own arena (run unity_to_yolo.py to fill sim/)\npath: {OUT}\n"
+        f"train:\n  - train/images\n  - sim/images\n{tail}")
+    (OUT / "data_real_only.yaml").write_text(f"# real footage only\npath: {OUT}\ntrain: train/images\n{tail}")
+    (OUT / "data_sim_asrendered.yaml").write_text(
+        f"# NOT for a model we keep: the Unity renders as rendered, whose background is the held-out fight.\n"
+        f"# Only used to measure how much that leak is worth.\npath: {OUT}\n"
+        f"train:\n  - train/images\n  - sim_asrendered/images\n{tail}")
+    (OUT / "data_own_camera.yaml").write_text(
+        f"# scoring only: the held-out Nemesis fight from our own camera\npath: {OUT}\n"
+        f"train: train/images\nval: own_camera_valid.txt\ntest: own_camera_test.txt\nnames:\n{names}\n")
+
+
 def main():
     group_of = {src: group for group, members in SAME_FOOTAGE.items() for src in members}
 
@@ -198,15 +215,7 @@ def main():
     for split in ("valid", "test"):
         own = [f"./{split}/images/{r['file']}" for r in rows if r["split"] == split and r["group"] == "NEM_V_WitchDoctor"]
         (OUT / f"own_camera_{split}.txt").write_text("\n".join(own) + "\n")
-    names = "\n".join(f"  {i}: {n}" for i, n in enumerate(NAMES))
-    (OUT / "data.yaml").write_text(
-        f"# real footage + Unity renders (run unity_to_yolo.py to fill sim/)\npath: {OUT}\n"
-        f"train:\n  - train/images\n  - sim/images\nval: valid/images\ntest: test/images\nnames:\n{names}\n")
-    (OUT / "data_real_only.yaml").write_text(
-        f"# real footage only\npath: {OUT}\ntrain: train/images\nval: valid/images\ntest: test/images\nnames:\n{names}\n")
-    (OUT / "data_own_camera.yaml").write_text(
-        f"# scoring only: the held-out Nemesis fight from our own camera\npath: {OUT}\n"
-        f"train: train/images\nval: own_camera_valid.txt\ntest: own_camera_test.txt\nnames:\n{names}\n")
+    write_yamls()
 
     # 5. prove it
     seen_group, seen_hash = defaultdict(set), defaultdict(set)

@@ -147,6 +147,10 @@ the camera powered for more than 15 to 20 minutes.
    `nemesis_policy_engine/config/saw_policy.yaml` (`units`, `origin`, `y_down`,
    and the size of a test floor that is not the 48 ft BattleBox).
 
+What the recorded Witch Doctor fight showed about the lens, the floor marks and
+the robots' speeds is in [docs/camera_and_arena_notes.md](docs/camera_and_arena_notes.md),
+including two things still to do before the next event.
+
 ## The policy on the robot
 
 `saw_policy_node` runs a `SAW_*.pt` checkpoint from `auton_training`. The

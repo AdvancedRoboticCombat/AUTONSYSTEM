@@ -61,7 +61,9 @@ HAZ_PATH      = ROOT / "battlebot_models" / "hazards.npy"
 
 # ─── Nominal robot physics ────────────────────────────────────────────────
 ROBOT_MASS_KG  = 113.4
-V_MAX_FT       = 6.9 * MPS2FT                # 22.64 ft/s
+V_MAX_FT       = 6.9 * MPS2FT                # 22.64 ft/s. Also the scale of the policy's speed inputs and of the tread
+                                             # mixer, so changing it breaks every trained checkpoint. The robot's real
+                                             # top speed is set by the v_max ranges below, not here.
 A_LAT_MAX_FT   = 30.0 * MPS2FT               # 98.43 ft/s^2, yaw-rate limit a_lat / |v|
 YAW_RATE_MAX   = 7.5                         # rad/s
 A_LONG_MAX_FT  = 23.488 * MPS2FT             # 77.06 ft/s^2 longitudinal traction limit
@@ -82,7 +84,8 @@ BODY_RESTITUTION = 0.3    # body-on-body bounce
 
 # ─── Domain randomization: our robot's plant (per episode) ────────────────
 # (lo, hi). Multipliers on the nominal value unless the name ends in _S.
-DR_V_MAX     = (0.65, 1.05)    # true top speed
+DR_V_MAX     = (0.49, 0.88)    # true top speed, as a share of V_MAX_FT. Centred on the 15.5 ft/s (0.685) seen on
+                               # camera in the Witch Doctor fight, same width as before (docs/camera_and_arena_notes.md)
 DR_GRIP      = (0.60, 1.15)    # floor grip: scales traction and both slip limits
 DR_YAW       = (0.80, 1.05)    # yaw rate actually reached at full command
 DR_ALPHA     = (0.70, 2.00)    # yaw acceleration (inertia is a rough estimate)
@@ -189,7 +192,8 @@ SAW_ACT_DIM = 4               # throttle, turn, arm (fire / park), blade speed
 # has magnets, how fast it is, how the speed controllers follow a command, how
 # late the camera and the radio are. Keys are the names in environment.RANGES.
 SAW_DR = dict(
-    v_max=(0.50, 1.10),        # top speed was never measured
+    v_max=(0.39, 0.98),        # 8.8 to 22.2 ft/s. The middle (0.685 = 15.5 ft/s) is the fastest Nemesis went on camera
+                               # in the Witch Doctor fight; the width is the old 0.50 to 1.10 (docs/camera_and_arena_notes.md)
     grip=(0.30, 1.15),         # 0.3 to 0.5 is rubber on steel with no magnets
     yaw=(0.55, 1.10),          # treads scrub when they turn
     alpha=(0.30, 2.00),

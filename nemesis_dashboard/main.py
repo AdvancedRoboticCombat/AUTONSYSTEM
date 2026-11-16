@@ -17,12 +17,17 @@ detector is returned by ``vision.get_detector``.
 
 Usage:
     python3 main.py --vision yolo
+    python3 main.py --vision yolo --fight-video [VIDEO]   # recorded fight instead of the camera
+    python3 main.py --vision yolo --record DIR            # also save the frames and their grab times
 """
 
 import argparse
 import asyncio
+import json
 import math
 import os
+import queue
+import subprocess
 import threading
 import time
 from typing import Optional, Tuple
@@ -31,6 +36,7 @@ import cv2
 import numpy as np
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import Float64, Bool, Float32MultiArray
@@ -40,6 +46,7 @@ from sensor_msgs.msg import Imu, Image
 import socketio
 from aiohttp import web
 
+import vision
 from vision import get_detector, VISION_METHODS
 from utils.geometry import adjust_center
 from utils.homography import Homography
@@ -66,6 +73,23 @@ VIDEO_SOURCE = (
 # Detector config (passed to the selected vision method via get_detector).
 VISION_MODEL_PATH = "YOLO_models/MediumBest.pt"  # CHANGE FOR UPDATED MODELS!!
 VISION_MODE = "seg"  # "seg" (mask polygons) or "box"
+
+# Fight-video mode (--fight-video, or the dashboard's "Run fight video" button):
+# a recorded fight is played through the detector instead of the camera.
+FIGHT_VIDEO_PATH = "/home/arc-lab-pc/battle_gamma08_fight.mp4"
+FIGHT_MODEL_PATH = "../ZACVISIONQUEST/runs/sweep/yolo26m-seg_1280_fightbg/weights/chosen.pt"  # classes: robot, nemesis
+FIGHT_MODEL_IMGSZ = 1280
+# Arena points for that video: {"pixel_points": [[x, y], ...], "arena_points_ft": [[x, y], ...]}
+FIGHT_HOMOGRAPHY_PATH = "fight_video_homography.json"
+
+# Recording (--record DIR): ffmpeg options for DIR/video.mp4. On the CPU, so
+# the detector keeps the GPU to itself. Measured on this PC: 1920x1440 at
+# 70 FPS uses about one CPU core, and the encoder can take 320 FPS. No B-frames
+# (-bf 0), so frame N of the file is exactly the N-th frame written.
+# GPU alternative (half the CPU, a third of the file size, but it shares the GPU):
+#   ["-c:v", "h264_nvenc", "-preset", "p4", "-rc", "constqp", "-qp", "23", "-bf", "0"]
+RECORD_ENCODER = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "20", "-bf", "0"]
+RECORD_QUEUE_FRAMES = 64  # grabbed frames that may wait for the encoder (8 MB each); beyond that they are dropped
 
 FRAME_ID = "image"
 
@@ -203,6 +227,8 @@ async def handle_trigger_action(sid, data):
         await set_swap_detect()
     elif key == "override_btn_pressed":
         await swap_override()
+    elif key == "fight_video_btn_pressed":
+        start_fight_video()
     # Add more elif branches here for future buttons
 
 
@@ -471,6 +497,26 @@ class DualTracker:
 
         return (nem_info, opp_info)
 
+    def step_known(self, arena_positions, nem_idx, opp_idx, t_now):
+        """step() for a model that tells the robots apart itself: nem_idx and
+        opp_idx are the detection index of each robot (None = not detected).
+        Same return value, same coasting and expiry."""
+        infos = []
+        for name, di in (('nem', nem_idx), ('opp', opp_idx)):
+            track = getattr(self, name)
+            if track and track.is_expired(t_now):
+                track = None
+            if di is None:
+                if track:
+                    track.coast(t_now)
+            elif track:
+                track.update_with_detection(arena_positions[di], t_now)
+            else:
+                track = RobotTrack(arena_positions[di], t_now)
+            setattr(self, name, track)
+            infos.append((tuple(track.pos), di) if track else None)
+        return tuple(infos)
+
 
 # =========================
 # ROS node
@@ -626,9 +672,10 @@ def capture_thread_fn(state: SharedState, ros_node: "NemesisNode", source, targe
     try:
         frame_count = 0
         fps_timer = time.perf_counter()
-        while rclpy.ok():
+        while rclpy.ok() and fight_video_run == 0:  # the fight video takes over from the camera
             t0 = time.perf_counter()
             ok, frame = cap.read()
+            t_grab = time.time()  # Unix time, for --record
             if not ok:
                 time.sleep(0.005)
                 continue
@@ -646,9 +693,158 @@ def capture_thread_fn(state: SharedState, ros_node: "NemesisNode", source, targe
                 fps_timer = time.perf_counter()
 
             state.set_frame(frame, t0)
+            if recorder:
+                recorder.add(frame, t_grab, target_fps)
             ros_node.publish_image(frame)
     finally:
         cap.release()
+
+
+# =========================
+# Recording (--record DIR)
+# =========================
+recorder = None  # FrameRecorder when --record is given
+
+
+class FrameRecorder:
+    """Saves the grabbed frames to DIR/video.mp4 and, for each frame in that
+    file, the Unix time it was grabbed to DIR/frames.csv (columns frame, t).
+
+    The frames wait in a bounded queue for a writer thread that pipes them to
+    ffmpeg. When the encoder cannot keep up the queue fills and new frames are
+    dropped (no row for them) rather than slowing the capture down."""
+
+    def __init__(self, folder: str, scale: float = 1.0):
+        self.video_path = os.path.join(folder, "video.mp4")
+        self.csv_path = os.path.join(folder, "frames.csv")
+        if os.path.exists(self.video_path):
+            raise SystemExit(f"{self.video_path} already exists: give --record another folder.")
+        os.makedirs(folder, exist_ok=True)
+        self.scale = scale
+        self.dropped = 0
+        self._last_drop_print = 0.0
+        self._queue = queue.Queue(maxsize=RECORD_QUEUE_FRAMES)
+        self._thread = threading.Thread(target=self._writer_thread_fn, daemon=True)
+        self._thread.start()
+
+    def add(self, frame: np.ndarray, t: float, fps: float):
+        """Queue one grabbed frame; never blocks. t: time.time() at the grab.
+        fps: nominal rate of the source, the playback speed of the video."""
+        try:
+            self._queue.put_nowait((frame, t, fps))
+        except queue.Full:
+            self.dropped += 1
+            if t - self._last_drop_print >= STATUS_PRINT_S:
+                self._last_drop_print = t
+                print(f"⚠️ Recording cannot keep up: {self.dropped} frames dropped so far")
+
+    def close(self):
+        """Encode what is still queued and finish both files."""
+        self._queue.put(None)
+        self._thread.join()
+
+    def _writer_thread_fn(self):
+        ffmpeg = None
+        written = 0
+        try:
+            with open(self.csv_path, "w", buffering=1) as rows:  # line-buffered: complete after a crash too
+                rows.write("frame,t\n")
+                while (item := self._queue.get()) is not None:
+                    frame, t, fps = item
+                    if ffmpeg is None:
+                        # The first frame sets the size (H.264 needs even numbers)
+                        h, w = frame.shape[:2]
+                        size = (int(w * self.scale) // 2 * 2, int(h * self.scale) // 2 * 2)
+                        # Own session: a Ctrl-C in the terminal must not reach ffmpeg
+                        # before the queued frames are written.
+                        ffmpeg = subprocess.Popen(
+                            ["ffmpeg", "-loglevel", "error", "-n", "-f", "rawvideo", "-pix_fmt", "bgr24",
+                             "-s", f"{size[0]}x{size[1]}", "-framerate", str(fps), "-i", "-",
+                             *RECORD_ENCODER, "-pix_fmt", "yuv420p", self.video_path],
+                            stdin=subprocess.PIPE, start_new_session=True,
+                        )
+                        print(f"⏺ Recording {size[0]}x{size[1]} to {self.video_path}")
+                    if (frame.shape[1], frame.shape[0]) != size:
+                        frame = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+                    ffmpeg.stdin.write(frame)
+                    ffmpeg.stdin.flush()
+                    rows.write(f"{written},{t:.6f}\n")
+                    written += 1
+        except Exception as error:  # ffmpeg missing or stopped (its own message is above), disk full...
+            print(f"❌ Recording stopped after {written} frames: {error!r}")
+            while self._queue.get() is not None:  # keep the queue empty until close()
+                pass
+        if ffmpeg:
+            # Closing its input makes ffmpeg finish the mp4; without this it would not play.
+            try:
+                ffmpeg.stdin.close()
+            except OSError:
+                pass
+            if ffmpeg.wait() != 0:
+                print(f"❌ ffmpeg failed: {self.video_path} is not usable")
+                return
+        print(f"⏹ Recording: {written} frames in {self.video_path}, {self.dropped} dropped")
+
+
+# =========================
+# Fight-video mode
+# =========================
+detector = None            # the vision thread's detector; start_fight_video() swaps it
+fight_video_run = 0        # 0 = live camera; goes up by one each time the fight video is (re)started
+fight_video_thread = None  # the thread playing the video
+
+
+def start_fight_video():
+    """Play FIGHT_VIDEO_PATH through the two-class fight model instead of the
+    camera. Calling it again restarts the video from its first frame."""
+    global detector, homography, fight_video_run, fight_video_thread
+    if fight_video_run == 0:
+        # vision.get_detector, not get_detector: camera_setup.py replaces the
+        # latter with one that hands back its own (camera) model.
+        detector = vision.get_detector(
+            "yolo", model_path=FIGHT_MODEL_PATH, mode=VISION_MODE, imgsz=FIGHT_MODEL_IMGSZ
+        )
+    if os.path.exists(FIGHT_HOMOGRAPHY_PATH):
+        with open(FIGHT_HOMOGRAPHY_PATH) as f:
+            points = json.load(f)
+        fight_homography = Homography(points["arena_points_ft"], HOMOG_DEST3D, NEMESIS_CENTER_HEIGHT)
+        fight_homography.compute(points["pixel_points"])
+        homography = fight_homography
+    else:
+        print(f"No {FIGHT_HOMOGRAPHY_PATH}: playing the fight video without arena positions.")
+    fight_video_run += 1
+    fight_video_thread = threading.Thread(target=fight_video_thread_fn, args=(state, fight_video_run), daemon=True)
+    fight_video_thread.start()
+
+
+def fight_video_thread_fn(state: SharedState, run: int):
+    """Feeds the fight video to the pipeline at its own frame rate, then holds
+    the last frame. Gives way as soon as the video is started again."""
+    global STREAM_W, STREAM_H
+    cap = cv2.VideoCapture(FIGHT_VIDEO_PATH)
+    if not cap.isOpened():
+        print("❌ Could not open fight video:", FIGHT_VIDEO_PATH)
+        return
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    dashboard_state["systemHealth"]["vision"]["captureFps"] = round(fps, 1)
+    print(f"▶ Fight video: {FIGHT_VIDEO_PATH} ({fps:.0f} FPS)")
+
+    start = time.perf_counter()
+    frame_no = 0
+    while rclpy.ok() and run == fight_video_run:
+        ok, frame = cap.read()
+        if not ok:
+            print("Fight video finished; holding the last frame.")
+            break
+        wait = start + frame_no / fps - time.perf_counter()  # real time, no faster
+        if wait > 0:
+            time.sleep(wait)
+        STREAM_H, STREAM_W = frame.shape[:2]
+        state.set_frame(frame, time.perf_counter())
+        if recorder:
+            recorder.add(frame, time.time(), fps)
+        frame_no += 1
+    cap.release()
 
 
 def stream_thread_fn(state: SharedState, fps=30, jpeg_quality=55):
@@ -679,7 +875,7 @@ def stream_thread_fn(state: SharedState, fps=30, jpeg_quality=55):
             time.sleep(sleep_for)
 
 
-def vision_thread_fn(state: SharedState, ros_node: NemesisNode, detector, fps=6):
+def vision_thread_fn(state: SharedState, ros_node: NemesisNode, fps=6):
     period = 1.0 / float(fps) if fps > 0 else 0.0
     last_frame_seq = -1
     tracker = DualTracker()
@@ -708,15 +904,27 @@ def vision_thread_fn(state: SharedState, ros_node: NemesisNode, detector, fps=6)
         last_frame_seq = seq
 
         # ── Run pluggable detector, collect raw detections ─────────────
-        raw_detections = []  # each: {pixel, conf, seg}
-        for det in detector.detect(frame):
+        current_detector = detector  # read once: the fight-video button can swap it
+        raw_detections = []  # each: {pixel, conf, seg, cls}
+        for det in current_detector.detect(frame):
             x1, y1, x2, y2 = det.bbox
             adjusted_cx, adjusted_cy = adjust_center(
                 det.center[0], det.center[1], y1, y2, frame_height=frame.shape[0]
             )
             raw_detections.append(
-                {'pixel': (adjusted_cx, adjusted_cy), 'conf': det.confidence, 'seg': det.mask}
+                {'pixel': (adjusted_cx, adjusted_cy), 'conf': det.confidence, 'seg': det.mask,
+                 'cls': det.class_id}
             )
+
+        # A model with a "nemesis" class tells the robots apart itself: Nemesis is
+        # its most confident nemesis detection, the opponent the most confident other.
+        nemesis_class = current_detector.nemesis_class
+        nem_idx = opp_idx = None
+        if nemesis_class is not None:
+            def most_confident(indices):
+                return max(indices, key=lambda i: raw_detections[i]['conf'], default=None)
+            nem_idx = most_confident(i for i, d in enumerate(raw_detections) if d['cls'] == nemesis_class)
+            opp_idx = most_confident(i for i, d in enumerate(raw_detections) if d['cls'] != nemesis_class)
 
         nem = None
         opp = None
@@ -738,7 +946,10 @@ def vision_thread_fn(state: SharedState, ros_node: NemesisNode, detector, fps=6)
                 arena_positions.append((float(res[0][0][0]), float(res[0][0][1])))
 
             # ── Tracker assigns labels in arena coords ──────────────
-            nem_info, opp_info = tracker.step(arena_positions, t0)
+            if nemesis_class is not None:
+                nem_info, opp_info = tracker.step_known(arena_positions, nem_idx, opp_idx, t0)
+            else:
+                nem_info, opp_info = tracker.step(arena_positions, t0)
 
             # Extract nemesis result
             if nem_info is not None:
@@ -770,6 +981,14 @@ def vision_thread_fn(state: SharedState, ros_node: NemesisNode, detector, fps=6)
                     pt = np.array([[[arena_pos[0], arena_pos[1]]]], dtype=np.float32)
                     px = cv2.perspectiveTransform(pt, homography.inv_matrix)
                     opp = (float(px[0][0][0]), float(px[0][0][1]))
+        elif nemesis_class is not None:
+            # ── No homography, two-class model: identity from the class ──
+            if nem_idx is not None:
+                d = raw_detections[nem_idx]
+                nem, nem_conf, nem_seg = d['pixel'], d['conf'], d['seg']
+            if opp_idx is not None:
+                d = raw_detections[opp_idx]
+                opp, opp_conf, opp_seg = d['pixel'], d['conf'], d['seg']
         else:
             # ── No homography: fallback sort-by-x (old behaviour) ───
             raw_detections.sort(key=lambda d: d['pixel'][0])
@@ -793,10 +1012,10 @@ def vision_thread_fn(state: SharedState, ros_node: NemesisNode, detector, fps=6)
         dashboard_state["systemHealth"]["vision"]["oppConfidence"] = round(opp_conf * 100, 1) if opp_conf is not None else 0
         emit_async("dashboard-update", dashboard_state)
 
-        # Publish centroids to ROS
-        if nem_h is not None:
+        # Publish centroids to ROS (unless Ctrl-C shut ROS down during this frame)
+        if nem_h is not None and rclpy.ok():
             ros_node.publish_centroid(ros_node.nem_centroid_pub, nem_h[0], nem_h[1], coasting=not nem_seen)
-        if opp_h is not None:
+        if opp_h is not None and rclpy.ok():
             ros_node.publish_centroid(ros_node.opp_centroid_pub, opp_h[0], opp_h[1], coasting=not opp_seen)
 
         # Emit centroids to frontend
@@ -864,19 +1083,44 @@ def parse_args():
         choices=VISION_METHODS,
         help="Vision/detection method to run (e.g. 'yolo').",
     )
+    parser.add_argument(
+        "--fight-video",
+        nargs="?",
+        const=FIGHT_VIDEO_PATH,
+        metavar="VIDEO",
+        help=f"Play a recorded fight through the detector instead of the camera (default: {FIGHT_VIDEO_PATH}).",
+    )
+    parser.add_argument(
+        "--record",
+        metavar="DIR",
+        help="Save every grabbed frame to DIR/video.mp4 and its grab time (Unix seconds) to DIR/frames.csv.",
+    )
+    parser.add_argument(
+        "--record-scale",
+        type=float,
+        default=1.0,
+        metavar="S",
+        help="Size of the recorded video relative to the camera frame (default: 1.0, full size).",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    global state
+    global state, detector, recorder, FIGHT_VIDEO_PATH
+    if args.record:
+        recorder = FrameRecorder(args.record, args.record_scale)
     rclpy.init()
     state = SharedState()
     ros_node = NemesisNode()
 
     # Build the selected vision detector (only the vision thread uses it).
-    detector = get_detector(args.vision, model_path=VISION_MODEL_PATH, mode=VISION_MODE)
+    if args.fight_video:
+        FIGHT_VIDEO_PATH = args.fight_video
+        start_fight_video()
+    else:
+        detector = get_detector(args.vision, model_path=VISION_MODEL_PATH, mode=VISION_MODE)
     print(f"✅ Vision method: {args.vision}")
 
     # Server thread
@@ -887,16 +1131,17 @@ def main():
     while server_loop is None:
         time.sleep(0.05)
 
-    # Capture thread
-    cap_t = threading.Thread(target=capture_thread_fn, args=(state, ros_node, VIDEO_SOURCE, CAPTURE_FPS), daemon=True)
-    cap_t.start()
+    # Capture thread (camera; in fight-video mode the video is already playing)
+    if not args.fight_video:
+        cap_t = threading.Thread(target=capture_thread_fn, args=(state, ros_node, VIDEO_SOURCE, CAPTURE_FPS), daemon=True)
+        cap_t.start()
 
     # Stream thread
     stream_t = threading.Thread(target=stream_thread_fn, args=(state, STREAM_FPS, JPEG_QUALITY), daemon=True)
     stream_t.start()
 
     # Vision thread
-    vision_t = threading.Thread(target=vision_thread_fn, args=(state, ros_node, detector, VISION_FPS), daemon=True)
+    vision_t = threading.Thread(target=vision_thread_fn, args=(state, ros_node, VISION_FPS), daemon=True)
     vision_t.start()
 
     # Watchdog thread
@@ -905,13 +1150,20 @@ def main():
 
     try:
         rclpy.spin(ros_node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         # Ctrl-C may already have shut the ROS context down
         if rclpy.ok():
             ros_node.destroy_node()
             rclpy.shutdown()
+        # Let the threads finish their current frame: exiting while one is still
+        # inside OpenCV or the detector aborts the process.
+        for thread in (fight_video_thread, stream_t, vision_t):
+            if thread:
+                thread.join(timeout=2)
+        if recorder:
+            recorder.close()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,48 @@
+# SIM2REAL settings: the floor, the test pilot's safety limits, and the mixer.
+# Feet and seconds. Read by test_pilot.py (and through it by the recorder and the
+# fake robot). Another file given with --settings only needs the lines it changes.
+#
+# Positions are the dashboard's arena coordinates, and they must be the policy's:
+# feet from a corner, x and y along two walls, counter-clockwise seen from above.
+
+# ── The floor ─────────────────────────────────────────────────────────────
+# battlebox        the 48 ft BattleBox as the simulator has it (auton_training/saw_walls.py):
+#                  the band along the y = 0 wall and the three wall blocks become keep-out boxes.
+#                  The arena points in the dashboard must be oriented to match (band on y = 0).
+# [width, height]  a plain rectangular floor of that size, origin at one corner, nothing on it.
+arena: battlebox
+# More places the robot's centre must stay margin_ft away from, each [x0, y0, x1, y1]:
+# kill saws and anything else on the real floor that the simulator's arena does not have.
+keep_out: []
+# The robot's CENTRE keeps this far from every wall and keep-out box: checked before a
+# maneuver starts (its whole reach) and all the time it runs (abort). The body's corners
+# are 2 ft from its centre, and a robot at speed needs room to stop after an abort.
+margin_ft: 5.0
+# A running maneuver is aborted when the robot is inside that margin, or would be within
+# stop_s at the speed it is nearing the limit (from the camera track). This is the time the
+# robot needs to react and slow down. Keep it under the 0.5 s the pre-check allows (COAST_S).
+stop_s: 0.4
+
+# ── Sensors ───────────────────────────────────────────────────────────────
+stale_s: 0.5                 # stop when our position, the IMU or the override switch is older than this
+initial_heading_deg: 0.0     # the way the robot faces when the pilot first gets it, counter-clockwise
+                             # from +x (test_pilot.py --heading overrides it)
+yaw_source: orientation      # as in saw_policy.yaml: "orientation" (the IMU's fused yaw) or "gyro"
+gyro_sign: 1.0               # -1.0 if the IMU reads clockwise as positive
+
+# ── Mixer ─────────────────────────────────────────────────────────────────
+half_track_ft: 1.48          # keep equal to half_track_ft in nemesis_policy_engine/config/saw_policy.yaml
+
+# ── Before, between and after maneuvers ───────────────────────────────────
+still_ft: 0.3                # "standing still": moved less than this over the last second ...
+still_rps: 0.15              # ... and turning slower than this (IMU; not checked with --no-imu)
+settle_s: 3.0                # a maneuver starts after everything has been right for this long:
+                             # the driver's time to take the robot (override) and move it first
+min_share: 1.0               # how far a maneuver's level may be lowered to make it fit the floor, as a
+                             # share of what it asks. 1.0: never, the pilot waits for the driver to make
+                             # room (a full-throttle step stays a full-throttle step). On a small floor
+                             # set e.g. 0.3. The hold is always shortened first.
+brake_s: 1.0                 # after an abort the treads are held at zero this long, then nothing is sent
+tries: 2                     # an aborted maneuver is played again from the start, this many times in all
+give_up_s: 0.0               # skip a maneuver that could not start for this long with the driver's hands
+                             # off. 0: wait for ever (test_pilot.py --give-up overrides it)

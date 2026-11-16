@@ -1408,7 +1408,8 @@ def run_dashboard(config, detector):
         return factory(name, **kwargs)
 
     backend.get_detector = get_detector
-    sys.argv = ["main.py", "--vision", "yolo"]
+    # Backend options given to this script (--record DIR) go on to main.py
+    sys.argv = ["main.py", "--vision", "yolo"] + [a for a in sys.argv[1:] if a != "--preview-only"]
 
     frontend = None
     stopping = threading.Event()

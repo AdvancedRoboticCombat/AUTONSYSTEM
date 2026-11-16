@@ -40,6 +40,8 @@ class YoloDetector(Detector):
         if mode not in ("seg", "box"):
             raise ValueError(f"Unknown YOLO mode '{mode}'; expected 'seg' or 'box'.")
         self.model = YOLO(model_path)
+        names = self.model.names  # {class index: name}
+        self.nemesis_class = next((i for i, name in names.items() if name == "nemesis"), None)
         self.mode = mode
         self.imgsz = imgsz
         self.seg_points = seg_points

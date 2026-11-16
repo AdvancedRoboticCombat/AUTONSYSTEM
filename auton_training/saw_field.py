@@ -50,7 +50,8 @@ TRAVES_RECOIL    = (0.6, 0.8)
 TRAVES_POWER     = (1.1, 1.55)        # 55 to 75 kJ over our 49
 
 # The rest of the field: absolute physique, drawn apart from ours
-EN_MPH_MIX       = ((0.30, (9.0, 12.0)), (0.55, (13.0, 20.0)), (0.15, (20.0, 24.0)))   # (share, mph range)
+EN_MPH_MIX       = ((0.30, (9.0, 13.0)), (0.55, (13.0, 20.0)), (0.15, (20.0, 24.0)))   # (share, mph range)
+# Witch Doctor's fastest on camera was 12 mph (17.6 ft/s). The slow group used to stop at 12, leaving no enemy between 12 and 13.
 EN_YAW_CAP       = (3.0, 8.0)         # rad/s
 EN_YAW_ACCEL     = (1.5, 3.0)         # x the yaw cap, per second
 HORIZ_HUB        = (0.6, 1.1)         # a horizontal's hub, x their half length

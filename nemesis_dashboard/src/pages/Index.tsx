@@ -19,7 +19,8 @@ function useClock() {
 
 const Dashboard = () => {
   const { data, handleOverride, isConnected } = useDashboardData();
-  const [feedExpanded, setFeedExpanded] = useState(false);
+  // Open the page as /?expand to start with the live feed filling the window.
+  const [feedExpanded, setFeedExpanded] = useState(() => new URLSearchParams(window.location.search).has('expand'));
   const clock = useClock();
   const manual = !!data.override;
 
