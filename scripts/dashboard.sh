@@ -13,22 +13,28 @@
 #                                      also save every camera frame to
 #                                      DIR/video.mp4 and its time to DIR/frames.csv
 #                                      (--record-scale 0.5: at half size)
+#   Without --record the camera is still recorded, to
+#   nemesis_dashboard/saved_camera_recordings/auto/<date_time>/  (--no-record: don't)
 START_DIR=$PWD  # --record DIR is relative to where the script was called from
 source "$(dirname -- "${BASH_SOURCE[0]}")/_common.sh"
 cd nemesis_dashboard
 [[ -d node_modules ]] || die "Frontend dependencies missing. Run scripts/setup_env.sh."
 
 SETUP_WINDOW=1
+AUTO_RECORD=1
 BACKEND_ARGS=()
 while [[ $# -gt 0 ]]; do
     case $1 in
         --skip-setup) SETUP_WINDOW=0 ;;
+        --no-record) AUTO_RECORD=0 ;;
         --fight-video)
             SETUP_WINDOW=0
+            AUTO_RECORD=0
             BACKEND_ARGS+=(--fight-video)
             if [[ $# -ge 2 && $2 != --* ]]; then BACKEND_ARGS+=("$2"); shift; fi ;;
         --record)
             [[ $# -ge 2 ]] || die "--record needs a folder"
+            AUTO_RECORD=0
             BACKEND_ARGS+=(--record "$(cd "$START_DIR" && realpath -m -- "$2")"); shift ;;
         --record-scale)
             [[ $# -ge 2 ]] || die "--record-scale needs a number"
@@ -37,6 +43,11 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+if [[ $AUTO_RECORD == 1 ]]; then
+    REC_DIR="$PWD/saved_camera_recordings/auto/$(date +%Y%m%d_%H%M%S)"
+    BACKEND_ARGS+=(--record "$REC_DIR")
+    echo ">>> Recording the camera to $REC_DIR"
+fi
 if [[ $SETUP_WINDOW == 1 ]]; then
     exec python camera_setup.py "${BACKEND_ARGS[@]}"
 fi
