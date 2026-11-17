@@ -145,7 +145,7 @@
           <!-- web dashboard -->
           <rect class="node" x="560" y="44" width="196" height="60" rx="2"/>
           <text class="t" x="572" y="69">Web dashboard</text>
-          <text class="s" x="572" y="87">React UI, localhost:8080</text>
+          <text class="s" x="572" y="87">React UI, served by main.py</text>
 
           <!-- kalman -->
           <rect class="node" x="560" y="214" width="196" height="84" rx="2"/>
@@ -198,8 +198,8 @@
           <text class="lbl" x="218" y="474" text-anchor="middle">USB</text>
 
           <path class="wire" d="M480 74 H558" marker-start="url(#ah)" marker-end="url(#ah)"/>
-          <text class="lbl" x="519" y="66" text-anchor="middle">Socket.IO</text>
-          <text class="lbl" x="519" y="90" text-anchor="middle">:3001</text>
+          <text class="lbl" x="519" y="66" text-anchor="middle">WebSocket</text>
+          <text class="lbl" x="519" y="90" text-anchor="middle">:8080</text>
 
           <!-- centroids: to policy, branch to kalman -->
           <path class="wire" d="M478 132 H834" marker-end="url(#ah)"/>
@@ -330,7 +330,7 @@
   <section>
     <h2>Not wired yet</h2>
     <ul>
-      <li><strong>Arena points.</strong> <code>HOMOG_DEST</code> in <code>main.py</code> is empty, so no positions are published and the policy never starts until the arena points are entered and clicked in the dashboard.</li>
+      <li><strong>Arena points.</strong> <code>HOMOG_DEST</code> in <code>nemesis_dashboard/backend/config.py</code> is empty, so no positions are published and the policy never starts until the arena points are entered and clicked in the dashboard.</li>
       <li><strong>Arena frame.</strong> The saw policy expects feet from a corner with turns counter-clockwise positive. If the arena points are entered differently, say so in <code>saw_policy.yaml</code> (units, origin, y_down).</li>
       <li><strong>Robot numbers.</strong> Body size, track width, latencies and arm timing in <code>saw_policy.yaml</code> are the simulator's nominal values, not measurements.</li>
       <li><strong>Weapon channels.</strong> Which transmitter input PPM channels 3 and 4 drive has not been checked, so blade and arm output is off by default.</li>

@@ -13,7 +13,7 @@
 
     # ── Arena: how the dashboard's arena coordinates map to the policy's ──
     # The policy's frame: feet, origin at a corner, heading counter-clockwise
-    # from the +x axis seen from above. HOMOG_DEST in nemesis_dashboard/main.py
+    # from the +x axis seen from above. HOMOG_DEST in nemesis_dashboard/backend/config.py
     # decides what the dashboard publishes; describe it here.
     units: "ft"              # "ft" or "m"
     origin: "corner"         # "corner" or "center"

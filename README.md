@@ -11,7 +11,7 @@ Full wiring diagram: [`docs/system_map.html`](docs/system_map.html) (open in a b
 ```mermaid
 flowchart LR
     cam[Overhead GigE camera] --> dash[Dashboard backend<br/>YOLO, homography, tracker]
-    dash <-->|Socket.IO :3001| ui[Web dashboard :8080]
+    dash <-->|page + WebSocket :8080| ui[Web dashboard]
     imu[Robot IMU via LoRa] --> rx[IMU receiver]
     dash -->|/nemesis/centroid<br/>/opponent/centroid| pol[saw_policy_node]
     rx -->|/nemesis/imu| pol
@@ -28,7 +28,7 @@ flowchart LR
 
 | Folder | What it is |
 | --- | --- |
-| `nemesis_dashboard/` | Camera capture, YOLO detection, homography, tracking (`main.py`), camera setup window (`camera_setup.py`), React web UI (`src/`) |
+| `nemesis_dashboard/` | Camera capture, YOLO detection, homography, tracking and the web server (`main.py`, `backend/`), camera setup window (`camera_setup.py`), React web UI (`src/`, built into `dist/`) |
 | `nemesis_tracking/` | ROS package: `kalman_node` (smoothed pose and velocity) and its live plotter; debugging only, started with `plotter:=true` |
 | `nemesis_policy_engine/` | ROS package: `saw_policy_node` flies an `auton_training` checkpoint (settings in `config/saw_policy.yaml`) |
 | `nemesis_control/` | ROS package: `channel_mux` (manual/auto switch), `sim2real.py` (PPM output), Kalman tuning helper |
@@ -45,7 +45,7 @@ Needs Ubuntu 24.04, ROS 2 Jazzy, `uv`, Node 18+, and
 For the sims also `gz-harmonic ros-jazzy-ros-gz`.
 
 ```sh
-scripts/setup_env.sh   # one Python environment for everything: ./.venv  (+ npm install)
+scripts/setup_env.sh   # one Python environment for everything: ./.venv  (+ the dashboard page)
 scripts/build.sh       # colcon build of the ROS packages into ./install
 scripts/test.sh        # checks that need no hardware
 ```
@@ -55,6 +55,27 @@ system packages visible, because ROS and the GStreamer build of OpenCV only
 exist there. `requirements-overrides.txt` keeps `opencv-python` and a new
 `setuptools` out of it; both break things.
 
+### Dependencies
+
+`requirements.txt` is the short list people edit. What is installed is
+`requirements.lock`: every package at an exact version, every file checked
+against its hash. `scripts/setup_env.sh` installs exactly that lock, so the
+club PC runs what was tested.
+
+```sh
+scripts/deps.sh lock            # newest versions released at least 7 days ago; torch, torchvision,
+                                # ultralytics and numpy stay where they are (--upgrade-gpu to move them)
+scripts/setup_env.sh            # install it: the old environment is kept as .venv.prev
+scripts/test.sh                 # then a dry run (scripts/all.sh --no-ppm) before driving
+scripts/deps.sh rollback        # something broke: the previous environment and lock come back
+scripts/deps.sh audit           # known vulnerabilities in the lock and the page's npm packages
+```
+
+The first `scripts/setup_env.sh` after this change writes `requirements.lock`
+from what `.venv` has, then installs it into a new `.venv` (one large download
+if `uv` has not cached torch). It refuses to finish if CUDA worked before and
+does not after. Update well before an event, not the night before.
+
 ## Commands
 
 Everything is run from the repository root.
@@ -62,7 +83,7 @@ Everything is run from the repository root.
 **Once**
 
 ```sh
-scripts/setup_env.sh            # build the Python environment (./.venv) and npm install
+scripts/setup_env.sh            # build the Python environment (./.venv) and the dashboard page
 scripts/build.sh                # build the ROS packages (again after changing C++ or a setup.py)
 scripts/test.sh                 # checks that need no hardware (environment, dashboard types, fake-sensor run of the ROS nodes)
 ```
@@ -79,7 +100,7 @@ scripts/all.sh --checkpoint ppo_models/my_run/SAW_upd100.pt    # another policy
 
 scripts/camera.sh               # camera only: settings, preview, YOLO overlay, photos, video, calibration
 scripts/camera.sh --check       # camera only, no window: finds it and prints FPS
-scripts/dashboard.sh            # camera + vision + web dashboard, no autonomy
+scripts/dashboard.sh            # camera + vision + web dashboard (http://localhost:8080), no autonomy
 scripts/dashboard.sh --skip-setup    # same without the camera settings window
 scripts/autonomy.sh             # ROS nodes only (policy, mux, radio, IMU, PPM)
 scripts/autonomy.sh ppm:=false radio:=false plotter:=true      # any launch argument (plotter adds the Kalman view)
@@ -137,7 +158,7 @@ the camera powered for more than 15 to 20 minutes.
    `nemesis_dashboard/vision/camera_calibration.npz`.
 3. **Homography** (every time the camera is moved): put the arena positions of
    at least 4 marked points (12 recommended) into `HOMOG_DEST` in
-   `nemesis_dashboard/main.py`, in a known order. Start the dashboard, enlarge
+   `nemesis_dashboard/backend/config.py`, in a known order. Start the dashboard, enlarge
    the live feed and click those points in the same order. To make it permanent,
    copy the printed pixel list into `DEFAULT_CLICKED_POINTS`.
 
@@ -171,8 +192,10 @@ which `eval/deploy_check.py` flies against the simulator.
 
 ## Who drives, and what stops the robot
 
-- The **OVERRIDE** button in the dashboard toggles `/nemesis/override`. Off: the
+- The **OVERRIDE** button in the dashboard sets `/nemesis/override`. Off: the
   policy writes `/control/channels`. On: `channel_mux` forwards the sticks instead.
+  The dashboard only answers on the PC itself, and every switch is logged with
+  its time in `logs/dashboard.log`.
 - If our camera position or the IMU is older than 1 s, the policy stops publishing.
 - If `/control/channels` is silent for 0.5 s, the PPM output centres the sticks
   and stops the blade.
