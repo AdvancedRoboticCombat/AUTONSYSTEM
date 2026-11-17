@@ -4,11 +4,13 @@
 #   scripts/test.sh              all of the below
 #   scripts/test.sh env          the Python environment (imports, GStreamer, CUDA)
 #   scripts/test.sh frontend     dashboard TypeScript type check
+#   scripts/test.sh dashboard    dashboard backend without camera or ROS: page, WebSocket,
+#                                video credits, OVERRIDE, refused connections
 #   scripts/test.sh pipeline     fake camera -> Kalman -> policy -> /control/channels,
 #                                manual override, and vision-loss stop
 source "$(dirname -- "${BASH_SOURCE[0]}")/_common.sh"
 set +e
-steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(env frontend pipeline)
+steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(env frontend dashboard pipeline)
 failed=()
 
 run() {   # run <name> <command...>
@@ -45,6 +47,9 @@ for step in "${steps[@]}"; do
             run "environment" check_env ;;
         frontend)
             run "frontend type check" bash -c "cd nemesis_dashboard && npx tsc --noEmit -p tsconfig.app.json" ;;
+        dashboard)
+            mkdir -p logs
+            run "dashboard backend" env NEMESIS_LOG_DIR="$ROOT/logs" python scripts/tools/dashboard_smoke_test.py ;;
         pipeline)
             if [[ -f install/setup.bash ]]; then
                 mkdir -p logs
@@ -53,7 +58,7 @@ for step in "${steps[@]}"; do
                 echo; echo "=== autonomy pipeline"; echo "--- FAILED: not built (run scripts/build.sh)"; failed+=("autonomy pipeline")
             fi ;;
         *)
-            die "Unknown step: $step (env, frontend, pipeline)" ;;
+            die "Unknown step: $step (env, frontend, dashboard, pipeline)" ;;
     esac
 done
 
