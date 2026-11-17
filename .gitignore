@@ -1,5 +1,7 @@
-# Python
+# Python (.venv.prev: the environment before the last update, for scripts/deps.sh rollback)
 .venv/
+.venv.prev/
+.venv.rejected/
 __pycache__/
 *.pyc
 *.egg-info/

@@ -25,6 +25,11 @@ source .venv/bin/activate
 export YOLO_OFFLINE=1
 export YOLO_AUTOINSTALL=false
 
+if [[ -f requirements.lock && ! -f .venv/ROLLED_BACK ]] &&
+   [[ $({ sha256sum requirements.lock 2>/dev/null || shasum -a 256 requirements.lock; } | cut -d' ' -f1) != "$(cat .venv/.nemesis-lock-sha256 2>/dev/null)" ]]; then
+    echo "WARNING: .venv is not built from the current requirements.lock. Run scripts/setup_env.sh." >&2
+fi
+
 # build_frontend_if_stale: builds the dashboard page (nemesis_dashboard/dist,
 # served by main.py) when it is missing or older than its sources.
 build_frontend_if_stale() {

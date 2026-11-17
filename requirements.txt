@@ -1,6 +1,7 @@
 # Python dependencies for every Nemesis component. One environment: ./.venv
-# Build it with scripts/setup_env.sh (do not pip install this file by hand:
-# the script also applies requirements-overrides.txt).
+# This is the short list people edit. What gets installed is requirements.lock
+# (exact versions, hashed), written from this file by scripts/deps.sh lock and
+# installed by scripts/setup_env.sh. Do not pip install this file by hand.
 #
 # NOT listed on purpose, because they must come from the system (apt / ROS):
 #   rclpy + message packages   (ROS 2 Jazzy, /opt/ros/jazzy)

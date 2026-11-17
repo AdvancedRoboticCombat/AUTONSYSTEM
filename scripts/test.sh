@@ -3,6 +3,7 @@
 #
 #   scripts/test.sh              all of the below
 #   scripts/test.sh env          the Python environment (imports, GStreamer, CUDA)
+#   scripts/test.sh deps         .venv is built from the current requirements.lock
 #   scripts/test.sh frontend     dashboard TypeScript type check
 #   scripts/test.sh dashboard    dashboard backend without camera or ROS: page, WebSocket,
 #                                video credits, OVERRIDE, refused connections
@@ -10,7 +11,7 @@
 #                                manual override, and vision-loss stop
 source "$(dirname -- "${BASH_SOURCE[0]}")/_common.sh"
 set +e
-steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(env frontend dashboard pipeline)
+steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(env deps frontend dashboard pipeline)
 failed=()
 
 run() {   # run <name> <command...>
@@ -45,6 +46,8 @@ for step in "${steps[@]}"; do
     case "$step" in
         env)
             run "environment" check_env ;;
+        deps)
+            run "dependencies match requirements.lock" scripts/deps.sh check ;;
         frontend)
             run "frontend type check" bash -c "cd nemesis_dashboard && npx tsc --noEmit -p tsconfig.app.json" ;;
         dashboard)
@@ -58,7 +61,7 @@ for step in "${steps[@]}"; do
                 echo; echo "=== autonomy pipeline"; echo "--- FAILED: not built (run scripts/build.sh)"; failed+=("autonomy pipeline")
             fi ;;
         *)
-            die "Unknown step: $step (env, frontend, dashboard, pipeline)" ;;
+            die "Unknown step: $step (env, deps, frontend, dashboard, pipeline)" ;;
     esac
 done
 
