@@ -116,7 +116,7 @@ def open_writer(path, fps):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--video", default="/home/arc-lab-pc/battle_gamma08_fight.mp4")
-    ap.add_argument("--weights", default=str(ROOT / "runs/sweep/yolo26m-seg_1280_fightbg/weights/chosen.pt"))
+    ap.add_argument("--weights", default=str(ROOT / "runs/sweep/yolo26m-seg_1280_all_fixes/weights/chosen.pt"))
     ap.add_argument("--homography", default=str(ROOT.parent / "nemesis_dashboard/fight_video_homography.json"))
     ap.add_argument("--out-dir", default=str(ROOT / "runs/fight_video"))
     ap.add_argument("--imgsz", type=int, default=1280)

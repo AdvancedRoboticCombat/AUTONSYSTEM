@@ -48,7 +48,7 @@ JPEG_QUALITY = 40
 # a recorded fight is played through the detector instead of the camera.
 # =========================
 FIGHT_VIDEO_PATH = "/home/arc-lab-pc/battle_gamma08_fight.mp4"
-FIGHT_MODEL_PATH = "../ZACVISIONQUEST/runs/sweep/yolo26m-seg_1280_fightbg/weights/chosen.pt"  # classes: robot, nemesis
+FIGHT_MODEL_PATH = "../ZACVISIONQUEST/runs/sweep/yolo26m-seg_1280_all_fixes/weights/chosen.pt"  # classes: robot, nemesis
 FIGHT_MODEL_IMGSZ = 1280
 # Arena points for that video: {"pixel_points": [[x, y], ...], "arena_points_ft": [[x, y], ...]}
 FIGHT_HOMOGRAPHY_PATH = "fight_video_homography.json"
