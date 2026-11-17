@@ -7,6 +7,7 @@ detection-only models (returns bbox centers, no mask).
 
 from __future__ import annotations
 
+import os
 from typing import List
 
 import numpy as np
@@ -39,6 +40,10 @@ class YoloDetector(Detector):
     ):
         if mode not in ("seg", "box"):
             raise ValueError(f"Unknown YOLO mode '{mode}'; expected 'seg' or 'box'.")
+        # Ultralytics downloads a model whose file it cannot find when the name
+        # matches one of its own (e.g. yolo11n.pt). Only ever load our files.
+        if not os.path.isfile(model_path):
+            raise FileNotFoundError(f"YOLO model not found: {model_path}")
         self.model = YOLO(model_path)
         names = self.model.names  # {class index: name}
         self.nemesis_class = next((i for i, name in names.items() if name == "nemesis"), None)

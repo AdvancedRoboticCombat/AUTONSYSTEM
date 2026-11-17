@@ -20,6 +20,11 @@ if [[ -f install/setup.bash ]]; then
 fi
 source .venv/bin/activate
 
+# Ultralytics: no update checks, usage analytics or downloads while running
+# (YOLO_OFFLINE), and never pip-install a missing package (YOLO_AUTOINSTALL).
+export YOLO_OFFLINE=1
+export YOLO_AUTOINSTALL=false
+
 # build_frontend_if_stale: builds the dashboard page (nemesis_dashboard/dist,
 # served by main.py) when it is missing or older than its sources.
 build_frontend_if_stale() {
