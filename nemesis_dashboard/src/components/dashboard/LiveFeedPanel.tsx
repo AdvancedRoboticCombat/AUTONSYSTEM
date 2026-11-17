@@ -1,25 +1,7 @@
 import { DashboardPanel } from "./DashboardPanel";
 import { useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
 import { Maximize, Minimize } from "lucide-react";
-
-type Centroid = { cx: number; cy: number };
-type HomogCoord = { x: number; y: number };
-type SegmentPolygon = [number, number][]; // array of [x, y] points in detection-space
-type VisionCentroidsPayload = {
-  detW: number;
-  detH: number;
-  nemesis: Centroid | null;
-  opponent: Centroid | null;
-  nemesisHomog: HomogCoord | null;
-  opponentHomog: HomogCoord | null;
-  nemesisSegment: SegmentPolygon | null;
-  opponentSegment: SegmentPolygon | null;
-  invHomog: number[] | null; // flat 9-element row-major 3×3 inverse homography (world→pixel)
-  ts?: number;
-};
-
-type Vec2 = { x: number; y: number };
+import { link, type SegmentPolygon, type Vec2 } from "@/lib/link";
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
@@ -181,12 +163,6 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
 
   const lastBmpRef = useRef<ImageBitmap | null>(null);
 
-  // FIX: Track whether a decode is already in flight.
-  // Without this, every incoming frame kicks off an async decode, and they
-  // pile up. Older decodes finishing after newer ones cause frames to render
-  // out of order and the video appears to play in slow motion.
-  const decodeInFlightRef = useRef(false);
-
   const detSizeRef = useRef<{ w: number; h: number }>({ w: 480, h: 270 });
 
   const targetNemRef = useRef<Vec2 | null>(null);
@@ -212,49 +188,33 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
   // Predicted trajectory arc from policy engine (world-space metres)
   const predictedArcRef = useRef<Vec2[]>([]);
 
-  const socketRef = useRef<Socket | null>(null);
-
   // Click handler stored in a ref — assigned inside useEffect, called from
   // the React onClick on the <canvas>. This way the handler always fires on
   // whichever canvas element is currently mounted (expanded or not).
   const handleClickRef = useRef<(e: React.MouseEvent<HTMLCanvasElement>) => void>(() => {});
 
   useEffect(() => {
-    const socket: Socket = io("http://localhost:3001", {
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      console.log("✅ Socket connected:", socket.id);
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("❌ Socket connection error:", err);
-    });
-
-    // FIX: Single consolidated handler for video-frame (was registered twice before,
-    // which meant two parallel decode pipelines ran for every frame)
-    socket.on("video-frame", async (data: ArrayBuffer) => {
-      // FIX: Drop this frame if we're still decoding the previous one.
-      // This keeps us at real-time by skipping frames rather than queuing them.
-      if (decodeInFlightRef.current) return;
-
-      decodeInFlightRef.current = true;
+    // Camera frames. The backend sends the next one only after "ready", so
+    // there is never more than one in flight and the picture cannot lag behind.
+    let unmounted = false;
+    const offFrame = link.on("frame", async (data) => {
       try {
-        const blob = new Blob([data], { type: "image/jpeg" });
-        const bmp = await createImageBitmap(blob);
-
+        const bmp = await createImageBitmap(new Blob([data], { type: "image/jpeg" }));
+        if (unmounted) {
+          bmp.close();
+          return;
+        }
         const prev = lastBmpRef.current;
         lastBmpRef.current = bmp;
         if (prev) prev.close();
+      } catch {
+        // A damaged frame: skip it
       } finally {
-        decodeInFlightRef.current = false;
+        if (!unmounted) link.send({ type: "ready" });
       }
     });
 
-    socket.on("vision-centroids", (payload: VisionCentroidsPayload) => {
-      console.log("vision-centroids received", payload);
+    const offVision = link.on("vision", (payload) => {
       detSizeRef.current = { w: payload.detW, h: payload.detH };
 
       targetNemRef.current = payload.nemesis
@@ -284,7 +244,7 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
     });
 
     // Predicted trajectory arc from policy engine
-    socket.on("predicted-arc", (arc: Vec2[]) => {
+    const offArc = link.on("arc", (arc) => {
       predictedArcRef.current = arc ?? [];
     });
 
@@ -431,7 +391,6 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
     // the component re-renders (e.g. expand/collapse).
     // ============================================================
     handleClickRef.current = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      console.log("Canvas clicked, raw:", e.clientX, e.clientY);
       const canvas = canvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
@@ -445,8 +404,6 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
       const detX = (cx - dx) / scale;
       const detY = (cy - dy) / scale;
 
-      console.log("Emitting canvas-click:", { x: detX, y: detY });
-
       // Mirror backend logic: keep at most HOMOG_POINT_COUNT points
       const pts = homogPointsRef.current;
       if (pts.length >= HOMOG_POINT_COUNT) {
@@ -454,13 +411,16 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
       }
       pts.push({ x: detX, y: detY });
 
-      socketRef.current?.emit("canvas-click", { x: detX, y: detY });
+      link.send({ type: "canvas-click", x: detX, y: detY });
     };
     // ============================================================
 
     return () => {
+      unmounted = true;
       cancelAnimationFrame(rafId);
-      socket.disconnect();
+      offFrame();
+      offVision();
+      offArc();
 
       const prev = lastBmpRef.current;
       if (prev) prev.close();
@@ -480,7 +440,7 @@ export function LiveFeedPanel({ expanded = false, onToggleExpand }: LiveFeedPane
       <canvas ref={canvasRef} className="w-full h-full" onClick={(e) => handleClickRef.current(e)} />
       <div className="absolute top-2 right-2 flex gap-2" style={{ zIndex: 10000 }}>
         <button
-          onClick={() => socketRef.current?.emit("trigger-action", { key: "fight_video_btn_pressed" })}
+          onClick={() => link.send({ type: "action", key: "fight_video_btn_pressed" })}
           className={`${feedButton} px-2 text-xs uppercase tracking-widest`}
           title="Play the recorded fight through the detector instead of the camera (press again to restart)"
         >

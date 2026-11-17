@@ -20,6 +20,21 @@ if [[ -f install/setup.bash ]]; then
 fi
 source .venv/bin/activate
 
+# build_frontend_if_stale: builds the dashboard page (nemesis_dashboard/dist,
+# served by main.py) when it is missing or older than its sources.
+build_frontend_if_stale() {
+    local dir="$ROOT/nemesis_dashboard"
+    if [[ -f $dir/dist/index.html ]] && [[ -z $(find "$dir/src" "$dir/public" "$dir/index.html" \
+            "$dir/package-lock.json" "$dir/vite.config.ts" "$dir/tailwind.config.ts" \
+            -newer "$dir/dist/index.html" -print -quit 2>/dev/null) ]]; then
+        return 0
+    fi
+    command -v npm >/dev/null || die "The dashboard page needs building and npm is missing (Node 18+)."
+    [[ -d $dir/node_modules ]] || die "Frontend dependencies missing. Run scripts/setup_env.sh."
+    echo ">>> Building the dashboard page"
+    (cd "$dir" && npm run build --silent >/dev/null) || die "Building the dashboard page failed (cd nemesis_dashboard && npm run build)."
+}
+
 need_build() {
     [[ -f install/setup.bash ]] || die "ROS packages are not built. Run scripts/build.sh first."
 }

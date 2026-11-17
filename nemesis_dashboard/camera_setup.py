@@ -13,7 +13,6 @@ from pathlib import Path
 import queue
 import re
 import shutil
-import signal
 import socket
 import subprocess
 import sys
@@ -39,7 +38,10 @@ from PIL import Image, ImageTk
 ROOT = Path(__file__).resolve().parent
 os.chdir(ROOT)
 
-import main as backend
+import main as backend_main
+import vision
+from backend import config as backend_config
+from backend.app import run as run_backend
 from utils.camera_intrinsics import compute_intrinsics, DEFAULT_OUTPUT_NPZ
 
 
@@ -69,6 +71,7 @@ SOFTWARE = [
     ("VisionFPS", "YOLO FPS limit (0 = unlimited)", 0, 0, 240, 1, False),
     ("YOLOSize", "YOLO image size", 640, 32, 1280, 32, True),
     ("StreamFPS", "Browser stream FPS", 30, 1, 120, 1, False),
+    ("StreamWidth", "Browser stream width (0 = camera size)", backend_config.STREAM_WIDTH, 0, 4096, 32, True),
     ("JPEGQuality", "Browser JPEG quality", 40, 1, 100, 1, True),
 ]
 
@@ -413,10 +416,10 @@ class Preview:
                     continue
 
                 if self.detector is None:
-                    self.detector = backend.get_detector(
+                    self.detector = vision.get_detector(
                         "yolo",
-                        model_path=backend.VISION_MODEL_PATH,
-                        mode=backend.VISION_MODE,
+                        model_path=backend_config.resolve(backend_config.VISION_MODEL_PATH),
+                        mode=backend_config.VISION_MODE,
                         imgsz=self.config["YOLOSize"],
                     )
                     # Get a fresh frame after loading the model.
@@ -1219,15 +1222,14 @@ class Setup:
         )
 
     def check_dashboard_can_start(self):
-        """Raises if the dashboard's ports are taken or its frontend is not installed."""
-        for port in (3001, 8080):
-            with socket.socket() as check:
-                check.bind(("127.0.0.1", port))
+        """Raises if the dashboard's port is taken or its page is not built."""
+        with socket.socket() as check:
+            check.bind(("127.0.0.1", backend_config.PORT))
 
-        if not (ROOT / "node_modules").is_dir():
+        if not (backend_config.DIST_DIR / "index.html").is_file():
             raise RuntimeError(
-                "Frontend dependencies missing. "
-                "Run npm install first."
+                "The dashboard page is not built. "
+                "Run scripts/setup_env.sh first."
             )
 
     def finish_without_camera(self):
@@ -1371,123 +1373,52 @@ class Setup:
         self.root.after(33, self.poll)
 
 
-def stop_frontend(process):
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-
-    try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        pass
-    finally:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-
-        process.wait()
-
-
 def run_dashboard(config, detector):
+    # Backend options given to this script (--record DIR, --fight-video...) go on to main.py
+    backend = backend_main.config_from_args(
+        ["--vision", "yolo"] + [a for a in sys.argv[1:] if a != "--preview-only"]
+    )
     # None: the backend runs without a video stream (no frames, no detections)
-    backend.VIDEO_SOURCE = None if config.get("NoCamera") else pipeline(config)
-    backend.CAPTURE_FPS = config["AcquisitionFrameRate"]
-    backend.VISION_FPS = config["VisionFPS"]
-    backend.STREAM_FPS = config["StreamFPS"]
-    backend.JPEG_QUALITY = config["JPEGQuality"]
+    backend.video_source = None if config.get("NoCamera") else pipeline(config)
+    backend.capture_fps = config["AcquisitionFrameRate"]
+    backend.vision_fps = config["VisionFPS"]
+    backend.stream_fps = config["StreamFPS"]
+    backend.stream_width = config["StreamWidth"]
+    backend.jpeg_quality = config["JPEGQuality"]
+    backend.yolo_imgsz = config["YOLOSize"]
 
-    factory = backend.get_detector
-
-    def get_detector(name, **kwargs):
-        if detector is not None and name == "yolo":
-            return detector
-
-        kwargs["imgsz"] = config["YOLOSize"]
-        return factory(name, **kwargs)
-
-    backend.get_detector = get_detector
-    # Backend options given to this script (--record DIR) go on to main.py
-    sys.argv = ["main.py", "--vision", "yolo"] + [a for a in sys.argv[1:] if a != "--preview-only"]
-
-    frontend = None
     stopping = threading.Event()
+    url = f"http://localhost:{backend.port}"
 
-    def monitor():
-        opened = False
+    def open_browser():
+        """Opens the page once the dashboard answers."""
         deadline = time.monotonic() + 60
-
-        while not stopping.wait(0.5):
-            if frontend.poll() is not None:
-                print(
-                    "Frontend exited; stopping dashboard.",
-                    flush=True,
-                )
-                os.kill(os.getpid(), signal.SIGINT)
-                return
-
-            if opened or time.monotonic() > deadline:
-                continue
-
+        while not stopping.wait(0.5) and time.monotonic() < deadline:
             try:
-                for port in (3001, 8080):
-                    with socket.create_connection(
-                        ("127.0.0.1", port), timeout=0.3
-                    ):
-                        pass
-
-                with urllib.request.urlopen(
-                    "http://127.0.0.1:8080", timeout=0.8
-                ):
+                with urllib.request.urlopen(url, timeout=0.8):
                     pass
-
             except OSError:
                 continue
+            webbrowser.open(url)
+            return
 
-            webbrowser.open("http://localhost:8080")
-            opened = True
-
+    threading.Thread(target=open_browser, daemon=True).start()
+    print(
+        f"Starting dashboard at {url}. "
+        "Press Ctrl+C here to stop it.",
+        flush=True,
+    )
     try:
-        frontend = subprocess.Popen(
-            [
-                "npm",
-                "run",
-                "dev",
-                "--",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "8080",
-                "--strictPort",
-            ],
-            cwd=ROOT,
-            start_new_session=True,
-        )
-
-        threading.Thread(
-            target=monitor, daemon=True
-        ).start()
-
-        print(
-            "Starting dashboard. "
-            "Press Ctrl+C here to stop it.",
-            flush=True,
-        )
-
-        backend.main()
-
+        # The camera window's detector is already loaded: the dashboard reuses it
+        run_backend(backend, detector=detector)
     finally:
         stopping.set()
-
-        if frontend is not None:
-            stop_frontend(frontend)
 
 
 def main():
     preview_only = "--preview-only" in sys.argv[1:]
 
-    for executable in ("arv-tool-0.8",) if preview_only else ("arv-tool-0.8", "npm"):
+    for executable in ("arv-tool-0.8",):
         if shutil.which(executable) is None:
             raise SystemExit(
                 "Required executable not found: " + executable
@@ -1503,10 +1434,10 @@ def main():
 
     Gst.init(None)
 
-    if not Path(backend.VISION_MODEL_PATH).is_file():
+    model_path = backend_config.resolve(backend_config.VISION_MODEL_PATH)
+    if not Path(model_path).is_file():
         raise SystemExit(
-            "YOLO model not found: "
-            + backend.VISION_MODEL_PATH
+            "YOLO model not found: " + model_path
         )
 
     root = tk.Tk()

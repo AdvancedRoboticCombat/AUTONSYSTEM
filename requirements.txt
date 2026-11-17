@@ -16,8 +16,7 @@ torch
 torchvision
 ultralytics
 
-# Dashboard backend
-python-socketio
+# Dashboard backend (aiohttp: the page and its WebSocket; pillow: the camera window)
 aiohttp
 pillow
 

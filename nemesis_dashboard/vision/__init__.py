@@ -7,24 +7,37 @@ them in :data:`AVAILABLE_DETECTORS`.
 
 from __future__ import annotations
 
-from typing import Callable, Dict
+from typing import Callable, Dict, List
+
+import numpy as np
 
 from .base import Detection, Detector
 
-# Registry of available vision methods. Keys are the values accepted by the
-# ``--vision`` flag in main.py. YOLO is the only one implemented today.
-AVAILABLE_DETECTORS: Dict[str, Callable[..., Detector]] = {}
 
-
-def _register_yolo() -> None:
-    # Imported lazily so that simply importing this package does not pull in
+def _yolo(**kwargs) -> Detector:
+    # Imported here so that importing this package does not pull in
     # ultralytics/torch unless a YOLO detector is actually requested.
     from .yolo import YoloDetector
 
-    AVAILABLE_DETECTORS["yolo"] = YoloDetector
+    return YoloDetector(**kwargs)
 
 
-_register_yolo()
+class NoDetector(Detector):
+    """Finds nothing. For running the dashboard without a model (tests, page work)."""
+
+    def __init__(self, **_options):
+        pass
+
+    def detect(self, frame: np.ndarray) -> List[Detection]:
+        return []
+
+
+# Registry of available vision methods. Keys are the values accepted by the
+# ``--vision`` flag in main.py.
+AVAILABLE_DETECTORS: Dict[str, Callable[..., Detector]] = {
+    "yolo": _yolo,
+    "none": NoDetector,
+}
 
 VISION_METHODS = tuple(AVAILABLE_DETECTORS.keys())
 
@@ -51,6 +64,7 @@ def get_detector(name: str, **kwargs) -> Detector:
 __all__ = [
     "Detection",
     "Detector",
+    "NoDetector",
     "get_detector",
     "AVAILABLE_DETECTORS",
     "VISION_METHODS",

@@ -40,13 +40,17 @@ FFMPEG_PID=$!
 sleep 1
 
 # Press "Run fight video" without a mouse: send what the button sends.
-(cd "$ROOT/nemesis_dashboard" && node -e '
-    const socket = require("socket.io-client").io("http://localhost:3001", { transports: ["websocket"] });
-    socket.on("connect", () => {
-        socket.emit("trigger-action", { key: "fight_video_btn_pressed" });
-        setTimeout(() => process.exit(), 500);
-    });
-')
+"$ROOT/.venv/bin/python" -I - <<'EOF'
+import asyncio, aiohttp
+
+async def press():
+    async with aiohttp.ClientSession() as session:
+        async with session.ws_connect("http://localhost:8080/ws") as ws:
+            await ws.send_json({"type": "action", "key": "fight_video_btn_pressed"})
+            await asyncio.sleep(0.5)
+
+asyncio.run(press())
+EOF
 
 wait "$FFMPEG_PID"
 echo "Saved $OUT"

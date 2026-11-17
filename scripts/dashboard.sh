@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Camera + vision + web dashboard, without the autonomy nodes. The backend still
+# Camera + vision + web dashboard (http://localhost:8080), without the autonomy nodes. The backend still
 # publishes centroids and the override switch to ROS, so this also works next
 # to scripts/autonomy.sh in another terminal.
 #
@@ -17,8 +17,8 @@
 #   nemesis_dashboard/saved_camera_recordings/auto/<date_time>/  (--no-record: don't)
 START_DIR=$PWD  # --record DIR is relative to where the script was called from
 source "$(dirname -- "${BASH_SOURCE[0]}")/_common.sh"
+build_frontend_if_stale
 cd nemesis_dashboard
-[[ -d node_modules ]] || die "Frontend dependencies missing. Run scripts/setup_env.sh."
 
 SETUP_WINDOW=1
 AUTO_RECORD=1
@@ -52,9 +52,5 @@ if [[ $SETUP_WINDOW == 1 ]]; then
     exec python camera_setup.py "${BACKEND_ARGS[@]}"
 fi
 
-run_in_background "$ROOT/logs/frontend.log" npm run dev -- --host 127.0.0.1 --port 8080 --strictPort
-FRONTEND_PID=$BG_PID
-trap 'stop_background "$FRONTEND_PID"' EXIT
-trap 'exit 130' INT TERM
-echo ">>> Dashboard: http://localhost:8080"
-python main.py --vision yolo "${BACKEND_ARGS[@]}"
+# One process: camera, vision, ROS, and the page with its WebSocket on :8080
+exec python main.py --vision yolo "${BACKEND_ARGS[@]}"

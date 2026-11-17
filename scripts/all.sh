@@ -21,6 +21,7 @@
 # Ctrl-C (or closing the dashboard) stops everything.
 source "$(dirname -- "${BASH_SOURCE[0]}")/_common.sh"
 need_build
+build_frontend_if_stale
 
 launch_args=()
 while [[ $# -gt 0 ]]; do

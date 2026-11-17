@@ -28,7 +28,7 @@ const Dashboard = () => {
 
   // When the live feed is expanded it renders as a fixed full-page overlay
   // from inside LiveFeedPanel itself, so we still render it here as well
-  // to keep the socket connection and canvas alive.
+  // to keep its canvas and subscriptions alive.
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col p-2 gap-2">

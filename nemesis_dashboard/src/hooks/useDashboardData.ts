@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { socket } from '@/socket';
+import { link } from '@/lib/link';
 import { DashboardState } from '@/types/dashboard';
 
 
@@ -33,43 +33,24 @@ export const useDashboardData = () => {
   const [data, setData] = useState<DashboardState>(INITIAL_DATA);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Simulate real-time updates - Replace with ROS2 subscription
+  // Dashboard numbers from the backend (at most 10 a second, only when changed)
   useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
-      console.log('Connected to Robot');
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-      console.log('Disconnected from Robot');
-    }
-
-    function onDataUpdate(newData: any) {
-      setData((prev) => ({ ...prev, ...newData }));
-    }
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('dashboard-update', onDataUpdate);
-
-
-    if (socket.connected) {
-      onConnect();
-    }
-
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('dashboard-update', onDataUpdate);
-    };
+    setIsConnected(link.connected);
+    const offs = [
+      link.on('open', () => setIsConnected(true)),
+      link.on('close', () => setIsConnected(false)),
+      link.on('state', (newData) => setData((prev) => ({ ...prev, ...newData }))),
+    ];
+    return () => offs.forEach((off) => off());
   }, []);
 
-  // Manual override toggle: the backend flips its state, publishes it on
-  // /nemesis/override and echoes it back in the next dashboard-update.
+  // Manual override: asks for the state the button shows (not a toggle), so a
+  // repeated message cannot flip it back. The backend publishes it on
+  // /nemesis/override and echoes it in the next state message.
+  const manual = !!data.override;
   const handleOverride = useCallback(() => {
-    socket.emit('trigger-action', { key: 'override_btn_pressed' });
-  }, []);
+    link.send({ type: 'override', manual: !manual });
+  }, [manual]);
 
   return { data, handleOverride, isConnected };
 

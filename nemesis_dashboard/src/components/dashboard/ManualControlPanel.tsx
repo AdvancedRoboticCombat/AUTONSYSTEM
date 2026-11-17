@@ -1,20 +1,6 @@
-import { useMemo } from "react";
-import { io, Socket } from "socket.io-client";
-
 import { DashboardPanel } from "./DashboardPanel";
 import { ControlBars } from "@/types/dashboard";
-
-// ✅ IMPORTANT: Ideally, make ONE socket connection app-wide.
-// This module-level singleton prevents multiple connections if the component re-mounts.
-let socket: Socket | null = null;
-function getSocket() {
-  if (!socket) {
-    socket = io("http://localhost:3001", {
-      transports: ["websocket"],
-    });
-  }
-  return socket;
-}
+import { link } from "@/lib/link";
 
 interface ManualControlPanelProps {
   data: ControlBars;
@@ -40,12 +26,8 @@ function ControlBarGroup({ label, values }: { label: string; values: number[] })
 }
 
 export function ManualControlPanel({ data, override = false, onOverride }: ManualControlPanelProps) {
-  const sio = useMemo(() => getSocket(), []);
-
   const handleSwapDetect = () => {
-    sio.emit("trigger-action", {
-      key: "swap_btn_pressed",
-    });
+    link.send({ type: "action", key: "swap_btn_pressed" });
   };
 
   return (

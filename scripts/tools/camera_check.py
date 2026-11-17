@@ -30,7 +30,7 @@ def main():
         sys.exit("FAIL  no camera found. Check PoE power and both Ethernet cables, "
                  "and give the camera about a minute after plugging it in.")
 
-    from main import VIDEO_SOURCE  # the backend's default pipeline
+    from backend.config import VIDEO_SOURCE  # the backend's default pipeline
 
     cap = cv2.VideoCapture(VIDEO_SOURCE, cv2.CAP_GSTREAMER)
     if not cap.isOpened():

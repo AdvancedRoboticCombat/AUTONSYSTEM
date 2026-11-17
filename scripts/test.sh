@@ -21,7 +21,7 @@ check_env() {
     python - <<'PY'
 import importlib, re, sys
 bad = []
-for name in ["rclpy", "cv2", "gi", "tkinter", "torch", "ultralytics", "socketio", "aiohttp",
+for name in ["rclpy", "cv2", "gi", "tkinter", "torch", "ultralytics", "aiohttp",
              "PIL.ImageTk", "scipy", "pygame", "serial", "pySerialTransfer", "sounddevice",
              "matplotlib", "numpy"]:
     try:
