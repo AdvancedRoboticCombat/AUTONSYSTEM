@@ -33,7 +33,11 @@ VIDEO_SOURCE = (
 )
 
 # Detector config (passed to the selected vision method via vision.get_detector).
-VISION_MODEL_PATH = "YOLO_models/MediumBest.pt"  # CHANGE FOR UPDATED MODELS!!
+# Two classes (robot, nemesis), so Nemesis is told from the opponent by class, not by position.
+# It is ZACVISIONQUEST's all_fixes run, trained at 1280 px. The old one-class models
+# (MediumBest.pt, MAYBEGRAYWORKS.pt, 640 px) are still in YOLO_models/.
+VISION_MODEL_PATH = "YOLO_models/all_fixes_1280.pt"
+VISION_MODEL_IMGSZ = 1280  # the size the model was trained at
 VISION_MODE = "seg"  # "seg" (mask polygons) or "box"
 
 # =========================
@@ -94,7 +98,7 @@ class Config:
     vision_fps: float = VISION_FPS
     vision_model_path: str = VISION_MODEL_PATH
     vision_mode: str = VISION_MODE
-    yolo_imgsz: Optional[int] = None             # None = the detector's default
+    yolo_imgsz: Optional[int] = VISION_MODEL_IMGSZ  # None = the detector's default
 
     # Stream
     stream_fps: float = STREAM_FPS

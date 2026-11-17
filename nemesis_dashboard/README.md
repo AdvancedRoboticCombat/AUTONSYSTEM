@@ -72,7 +72,7 @@ camera_setup.py      Camera settings window (Aravis); "Done" starts the dashboar
 vision/              Detectors behind one interface (base.py): yolo.py, and "none"
 vision/camera_calibration.npz   Camera intrinsics, written by the Calibration tab
 utils/               homography.py (pixels to arena), camera_intrinsics.py (checkerboard calibration), geometry.py
-YOLO_models/         MediumBest.pt is the model the dashboard loads (VISION_MODEL_PATH)
+YOLO_models/         all_fixes_1280.pt (two classes: robot, nemesis) is the model the dashboard loads (VISION_MODEL_PATH)
 src/                 React + TypeScript + Tailwind page; src/lib/link.ts is its one connection
 ```
 

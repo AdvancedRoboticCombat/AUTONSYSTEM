@@ -69,7 +69,7 @@ CAMERA = [
 
 SOFTWARE = [
     ("VisionFPS", "YOLO FPS limit (0 = unlimited)", 0, 0, 240, 1, False),
-    ("YOLOSize", "YOLO image size", 640, 32, 1280, 32, True),
+    ("YOLOSize", "YOLO image size", backend_config.VISION_MODEL_IMGSZ, 32, 1280, 32, True),
     ("StreamFPS", "Browser stream FPS", 30, 1, 120, 1, False),
     ("StreamWidth", "Browser stream width (0 = camera size)", backend_config.STREAM_WIDTH, 0, 4096, 32, True),
     ("JPEGQuality", "Browser JPEG quality", 40, 1, 100, 1, True),
